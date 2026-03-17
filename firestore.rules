@@ -1,0 +1,187 @@
+rules_version = '2';
+
+// ============================================================
+// FIRESTORE SECURITY RULES - Nin Online CCG BR
+// Versão: SEGURA v3 — Corrigida após análise de bugs pós-invasão
+// Banco: default2
+// ============================================================
+//
+// COMO APLICAR:
+//   1. Acesse https://console.firebase.google.com
+//   2. Projeto: nincardcollectionbr
+//   3. Firestore Database → Regras → Cole e Publique no banco 'default2'
+//
+// FILOSOFIA:
+//   - Tudo negado por padrão
+//   - Campos sensíveis (inventory, pacotes) SÓ a Cloud Function escreve
+//   - O cliente só escreve campos de perfil (notificações, sessionId, createdAt)
+//   - Leaderboard (community) só admin ou Cloud Function escrevem
+//   - admin_security NUNCA lida pelo cliente — verificação é server-side
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ========================================================
+    // FUNÇÕES AUXILIARES
+    // ========================================================
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isAuth() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // LISTA NEGRA: campos que o cliente jamais toca diretamente.
+    // Esses só são modificados pela Cloud Function (server-side).
+    function touchesSensitiveFields() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['role', 'inventory', 'pullsAvailable', 'premiumPullsAvailable',
+                 'totalPacksOpened', 'tradesToday', 'lastTradeDate',
+                 'totalTradesCompleted', 'claimedAchievements']);
+    }
+
+    // ========================================================
+    // COLEÇÃO: users
+    // ========================================================
+    match /users/{userId} {
+
+      // Leitura pública — necessário para ranking e trocas
+      allow read: if true;
+
+      // Criação de conta: só o próprio usuário, sem injetar role 'admin'
+      allow create: if isOwner(userId)
+        && (!('role' in request.resource.data) || request.resource.data.role != 'admin');
+
+      // Atualização pelo próprio usuário:
+      // Permite campos de perfil (notificações, sessão, createdAt) mas bloqueia campos sensíveis
+      allow update: if isOwner(userId) && !touchesSensitiveFields();
+
+      // Admins podem atualizar e deletar qualquer conta (banimentos, punições)
+      allow update, delete: if isAdmin();
+    }
+
+    // ========================================================
+    // COLEÇÃO: cards
+    // ========================================================
+    match /cards/{cardId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ========================================================
+    // COLEÇÃO: settings
+    // ========================================================
+    match /settings/{docId} {
+      allow read: if true;
+      // globalStats é escrito pela Cloud Function (que usa Admin SDK, não precisa de rules)
+      // Outros docs de settings só admins escrevem
+      allow write: if isAdmin();
+    }
+
+    // ========================================================
+    // COLEÇÃO: trades (Mural de Trocas)
+    // ========================================================
+    match /trades/{tradeId} {
+      // Leitura pública para carregar o mural antes do login
+      allow read: if true;
+
+      // Criação: só o próprio usuário, com campos obrigatórios válidos
+      allow create: if isAuth()
+        && request.resource.data.fromUserId == request.auth.uid
+        && request.resource.data.status == 'open'
+        && request.resource.data.offerCardId is string
+        && request.resource.data.requestTier in ['C', 'B', 'A', 'S', 'SS'];
+
+      // Atualização: cancelar (só o dono) ou aceitar (só outro jogador)
+      allow update: if isAuth()
+        && (
+          (resource.data.fromUserId == request.auth.uid
+            && request.resource.data.status == 'cancelled')
+          ||
+          (resource.data.fromUserId != request.auth.uid
+            && request.resource.data.status == 'completed'
+            && request.resource.data.acceptedBy == request.auth.uid)
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    // ========================================================
+    // COLEÇÃO: system_logs
+    // ========================================================
+    match /system_logs/{logId} {
+      // Admins leem logs; página pública não precisa ver logs
+      allow read: if isAdmin();
+
+      // Qualquer autenticado cria logs (registrar ações do jogo)
+      allow create: if isAuth()
+        && request.resource.data.action is string
+        && request.resource.data.action.size() <= 500;
+
+      // Ninguém edita ou deleta logs
+      allow update, delete: if false;
+    }
+
+    // ========================================================
+    // COLEÇÃO: community (leaderboard)
+    // ========================================================
+    match /community/{docId} {
+      // Leitura pública — ranking visível para todos
+      allow read: if true;
+
+      // FIX BUG-05: Escrita apenas por admins.
+      // A Cloud Function openBasicPack usa Admin SDK (ignora rules) e
+      // pode atualizar community diretamente como efeito colateral.
+      // O syncLeaderboard() do cliente foi movido para dentro da Cloud Function.
+      allow write: if isAdmin();
+    }
+
+    // ========================================================
+    // COLEÇÃO: admin_security (senha master)
+    // ========================================================
+    // FIX BUG-06: NUNCA lido pelo cliente.
+    // A verificação do PIN deve ser feita por uma Cloud Function
+    // verifyAdminPin() que retorna apenas true/false.
+    match /admin_security/{docId} {
+      allow read, write: if false;
+    }
+
+    // ========================================================
+    // COLEÇÃO: global_stats
+    // ========================================================
+    match /global_stats/{docId} {
+      allow read: if true;
+      // Escrito pela Cloud Function via Admin SDK — não precisa de rule permissiva
+      allow write: if isAdmin();
+    }
+
+    // ========================================================
+    // COLEÇÕES DE BANIMENTO
+    // ========================================================
+    match /banned_users/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /banned_ips/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ========================================================
+    // TUDO MAIS: NEGADO
+    // ========================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

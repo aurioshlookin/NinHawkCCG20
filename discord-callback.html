@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entrando com Discord...</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+
+  <div id="status" class="flex flex-col items-center gap-6 p-8 text-center">
+    <!-- Estado inicial: carregando -->
+    <div id="state-loading" class="flex flex-col items-center gap-4">
+      <div class="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      <h1 class="text-2xl font-bold text-white">Verificando sua conta Discord...</h1>
+      <p class="text-gray-400 text-sm">Isso só leva um segundo.</p>
+    </div>
+
+    <!-- Estado de erro -->
+    <div id="state-error" class="hidden flex-col items-center gap-4">
+      <div class="text-6xl">⛔</div>
+      <h1 class="text-2xl font-bold text-red-400">Falha na autenticação</h1>
+      <p id="error-message" class="text-gray-300 text-sm max-w-sm"></p>
+      <a href="index.html" class="mt-4 bg-gray-700 hover:bg-gray-600 text-white font-bold px-6 py-3 rounded-lg transition">
+        Voltar ao Jogo
+      </a>
+    </div>
+
+    <!-- Estado de sucesso -->
+    <div id="state-success" class="hidden flex-col items-center gap-4">
+      <div class="text-6xl">✅</div>
+      <h1 class="text-2xl font-bold text-green-400">Login realizado!</h1>
+      <p class="text-gray-300 text-sm">Redirecionando para o jogo...</p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithCustomToken }
+      from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    // ── Config Firebase (mesmo do index.html) ──────────────────
+    const firebaseConfig = {
+      apiKey: "AIzaSyAWcdJV6INuUeo6-STW5J_VYZ7aUzO51KI",
+      authDomain: "nincardcollectionbr.firebaseapp.com",
+      projectId: "nincardcollectionbr",
+      storageBucket: "nincardcollectionbr.firebasestorage.app",
+      messagingSenderId: "453676287016",
+      appId: "1:453676287016:web:d9d42209a871b5c3c0211d"
+    };
+
+    // URL da Cloud Function (ajuste se necessário)
+    const CLOUD_FUNCTIONS_URL = "https://us-central1-nincardcollectionbr.cloudfunctions.net";
+
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    function showError(msg) {
+      document.getElementById("state-loading").classList.add("hidden");
+      document.getElementById("state-error").classList.remove("hidden");
+      document.getElementById("state-error").classList.add("flex");
+      document.getElementById("error-message").textContent = msg;
+    }
+
+    async function handleCallback() {
+      // O Discord redireciona para esta página com ?code=XXX na URL
+      const params = new URLSearchParams(window.location.search);
+      const code   = params.get("code");
+      const error  = params.get("error");
+
+      if (error || !code) {
+        showError("Autorização cancelada ou negada pelo Discord.");
+        return;
+      }
+
+      try {
+        // 1. Envia o code para a Cloud Function trocar pelo customToken
+        const response = await fetch(`${CLOUD_FUNCTIONS_URL}/discordAuth`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code }),
+        });
+
+        const json = await response.json();
+
+        if (!response.ok || json.error) {
+          showError(json.error || "Erro ao autenticar com o Discord.");
+          return;
+        }
+
+        const { customToken } = json.data;
+
+        // 2. Faz login no Firebase com o customToken
+        await signInWithCustomToken(auth, customToken);
+
+        // 3. Sucesso — redireciona para o jogo
+        document.getElementById("state-loading").classList.add("hidden");
+        document.getElementById("state-success").classList.remove("hidden");
+        document.getElementById("state-success").classList.add("flex");
+
+        setTimeout(() => {
+          window.location.href = "index.html";
+        }, 1200);
+
+      } catch (err) {
+        showError("Erro inesperado: " + err.message);
+      }
+    }
+
+    handleCallback();
+  </script>
+</body>
+</html>

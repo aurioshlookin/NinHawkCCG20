@@ -1,0 +1,24 @@
+# Credenciais das Cloud Functions — NUNCA commitar
+functions/.env
+.env
+.env.local
+.env.production
+
+# Firebase CLI
+.firebase/
+firebase-debug.log
+.firebaserc
+
+# Dependências Node (instalar com npm install)
+functions/node_modules/
+
+# Build output
+dist/
+.cache/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
