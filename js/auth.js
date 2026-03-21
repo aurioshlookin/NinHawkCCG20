@@ -19,7 +19,7 @@ const DISCORD_CLIENT_ID  = "1483555790680883210";
 // URI de redirect cadastrada no Discord Developer Portal
 // Deve ser a URL pública desta página: https://SEU-DOMINIO/discord-callback.html
 const DISCORD_REDIRECT_URI = encodeURIComponent(
-  window.location.origin + "/discord-callback.html"
+  "https://aurioshlookin.github.io/NinHawkCCG20/discord-callback.html"
 );
 // Scopes necessários: identify (perfil básico)
 const DISCORD_OAUTH_URL = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${DISCORD_REDIRECT_URI}&response_type=code&scope=identify`;
