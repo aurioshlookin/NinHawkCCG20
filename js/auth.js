@@ -32,7 +32,7 @@ function initAuth() {
   // URI de redirect cadastrada no Discord Developer Portal
   // Deve ser a URL pública desta página: https://SEU-DOMINIO/discord-callback.html
   const DISCORD_REDIRECT_URI = encodeURIComponent(
-  "https://aurioshlookin.github.io/NinCardMemeCollectionBR/discord-callback.html"
+  "https://aurioshlookin.github.io/NinHawkCCG20/discord-callback.html"
 );
   // Scopes necessários: identify (perfil básico)
   const DISCORD_OAUTH_URL = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${DISCORD_REDIRECT_URI}&response_type=code&scope=identify`;
