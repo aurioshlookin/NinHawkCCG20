@@ -815,12 +815,61 @@
       onAuthStateChanged, signOut, updateProfile, updatePassword
     };
 
-    // ── URL das Cloud Functions (ajuste após o deploy) ────────────────────
-    // Substitua pela URL real: https://us-central1-nincardcollectionbr.cloudfunctions.net
+    // ── URL das Cloud Functions ────────────────────────────────────────────
     window.CLOUD_FUNCTIONS_URL = 'https://us-central1-nincardcollectionbr.cloudfunctions.net';
+
+    // ── CORREÇÃO: dispara evento quando Firebase estiver 100% pronto ──────
+    // Scripts clássicos (auth.js, etc.) são síncronos e podem rodar antes
+    // do módulo ES terminar. O evento 'firebase-ready' garante a ordem certa.
+    // ── Expõe variáveis globais usadas pelos módulos JS ─────────────────
+    // Os arquivos em js/ usam db, auth, currentUser, userData como variáveis
+    // livres — precisam estar em window para funcionar como scripts clássicos.
+    window.db   = db;
+    window.auth = auth;
+
+    // Firestore helpers — usados diretamente em trade.js, admin.js, etc.
+    window.doc            = doc;
+    window.getDoc         = getDoc;
+    window.setDoc         = setDoc;
+    window.updateDoc      = updateDoc;
+    window.addDoc         = addDoc;
+    window.onSnapshot     = onSnapshot;
+    window.collection     = collection;
+    window.query          = query;
+    window.where          = where;
+    window.getDocs        = getDocs;
+    window.serverTimestamp = serverTimestamp;
+    window.runTransaction = runTransaction;
+    window.deleteDoc      = deleteDoc;
+    window.writeBatch     = writeBatch;
+    window.increment      = increment;
+
+    // Auth helpers
+    window.signOut        = signOut;
+    window.onAuthStateChanged = onAuthStateChanged;
+    window.updateProfile  = updateProfile;
+
+    // Estado global do jogo
+    window.currentUser  = null;
+    window.userData     = {
+      pullsAvailable: 0, premiumPullsAvailable: 0, inventory: {},
+      role: 'player', tradesToday: 0, lastTradeDate: '',
+      lastPullTimestamp: null, totalPacksOpened: 0,
+      totalTradesCompleted: 0, claimedAchievements: {}, notifications: []
+    };
+    window.cardDatabase  = [];
+    window.allOpenTrades = [];
+    window.globalSettings = { registrationsOpen: true, cardsVersion: 0, maintenanceMode: false };
+    window.GITHUB_RAW_URL = 'https://raw.githubusercontent.com/aurioshlookin/NinCardMemeCollectionBR/main/assets/cards/';
+    window.TIER_VALUES    = { C: 1, B: 2, A: 3, S: 4, SS: 5 };
+    window.TIER_ORDER     = ['SS', 'S', 'A', 'B', 'C'];
+
+    // Sinaliza que o Firebase está pronto para os scripts clássicos
+    window._firebaseReady = true;
+    window.dispatchEvent(new CustomEvent('firebase-ready'));
   </script>
 
-  <!-- Módulos da aplicação (carregados após o módulo Firebase acima) -->
+  <!-- Módulos da aplicação — aguardam o evento firebase-ready -->
   <script src="js/auth.js"></script>
   <script src="js/cards.js"></script>
   <script src="js/gacha.js"></script>
