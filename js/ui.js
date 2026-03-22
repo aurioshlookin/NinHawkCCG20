@@ -323,11 +323,46 @@
       }
     };
 
-    window.fireConfetti = (tier) => {
-      if(typeof confetti !== 'function') return;
-      if(tier === 'SS') {
-        confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: ['#ef4444', '#000000', '#ffffff'], zIndex: 1000 });
-      } else if(tier === 'S') {
-        confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 }, colors: ['#facc15', '#ffffff'], zIndex: 1000 });
+window.fireConfetti = (tier) => {
+  if(typeof confetti !== 'function') return;
+  if(tier === 'SS') {
+    confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: ['#ef4444', '#000000', '#ffffff'], zIndex: 1000 });
+  } else if(tier === 'S') {
+    confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 }, colors: ['#facc15', '#ffffff'], zIndex: 1000 });
+  }
+};
+
+window.applyGlobalSettingsUI = () => {
+  const regBtn = document.getElementById('btn-nav-register');
+  const adminRegStatus = document.getElementById('admin-reg-status');
+  const settings = window.globalSettings || {};
+  if (settings.registrationsOpen) {
+    if (regBtn) regBtn.classList.remove('hidden');
+    if (adminRegStatus) { adminRegStatus.innerText = "LIGADO"; adminRegStatus.className = "text-green-400 font-bold"; }
+  } else {
+    if (regBtn) regBtn.classList.add('hidden');
+    if (adminRegStatus) { adminRegStatus.innerText = "DESLIGADO"; adminRegStatus.className = "text-red-400 font-bold"; }
+  }
+  const adminMaintStatus = document.getElementById('admin-maint-status');
+  if (settings.maintenanceMode) {
+    if (adminMaintStatus) { adminMaintStatus.innerText = "LIGADO"; adminMaintStatus.className = "text-red-400 font-bold"; }
+  } else {
+    if (adminMaintStatus) { adminMaintStatus.innerText = "DESLIGADO"; adminMaintStatus.className = "text-gray-400 font-bold"; }
+  }
+  const maintOverlay = document.getElementById('maintenance-overlay');
+  if (maintOverlay) {
+    if (settings.maintenanceMode) {
+      const isAdmin = window.userData && window.userData.role === 'admin';
+      if (isAdmin) {
+        maintOverlay.classList.add('hidden');
+        maintOverlay.classList.remove('flex');
+      } else {
+        maintOverlay.classList.remove('hidden');
+        maintOverlay.classList.add('flex');
       }
-    };
+    } else {
+      maintOverlay.classList.add('hidden');
+      maintOverlay.classList.remove('flex');
+    }
+  }
+};
