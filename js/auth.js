@@ -135,7 +135,7 @@ function initAuth() {
             .catch(() => {});
         }
   
-        window.applyGlobalSettingsUI();
+        if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
         if (window.updateGachaUI)        window.updateGachaUI();
         if (window.renderAlbumHTML)      window.renderAlbumHTML("album-grid", window.userData.inventory);
         if (window.updateTradeOptions)   window.updateTradeOptions();
@@ -169,8 +169,8 @@ function initAuth() {
       });
   
       if (unsubUser) { unsubUser(); unsubUser = null; }
-      window.applyGlobalSettingsUI();
-      window.switchTab("explore");
+      if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
+window.switchTab("explore");
     }
   });
 }
