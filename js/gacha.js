@@ -124,7 +124,7 @@
                 <div class="card-container w-24 h-36 sm:w-32 sm:h-48 md:w-40 md:h-60 cursor-pointer transform transition hover:scale-105 rounded-xl" id="achiev-card-${index}" onclick="window.revealAchievCard(${index})">
                   <div class="card-inner shadow-2xl rounded-xl" id="achiev-card-inner-${index}">
                     <div class="card-back ${currentAchievType === 'premium' ? 'border-yellow-400 bg-gradient-to-br from-red-900 to-black' : 'hover:shadow-green-500/50'} transition duration-300 flex flex-col items-center justify-center rounded-xl border-[4px]">
-                      <img src="https://raw.githubusercontent.com/aurioshlookin/NinCardMemeCollectionBR/main/assets/img/icon.png" class="w-10 h-10 sm:w-16 sm:h-16 opacity-60 drop-shadow-[0_0_5px_rgba(34,197,94,0.4)]" alt="Card Logo">
+                      <img src="https://raw.githubusercontent.com/aurioshlookin/NinHawkCCG20/main/assets/img/icon.png" class="w-10 h-10 sm:w-16 sm:h-16 opacity-60 drop-shadow-[0_0_5px_rgba(34,197,94,0.4)]" alt="Card Logo">
                     </div>
                     <div class="card-front p-1 flex flex-col justify-between rounded-xl" id="achiev-card-front-${index}"></div>
                   </div>
@@ -291,7 +291,7 @@
                     <div class="card-container w-24 h-36 sm:w-32 sm:h-48 md:w-40 md:h-60 cursor-pointer transform transition hover:scale-105 rounded-xl" id="gacha-card-${index}" onclick="window.revealSingleCard(${index})">
                       <div class="card-inner shadow-2xl rounded-xl" id="gacha-card-inner-${index}">
                         <div class="card-back hover:shadow-green-500/50 transition duration-300 flex flex-col items-center justify-center rounded-xl border-[4px]">
-                          <img src="https://raw.githubusercontent.com/aurioshlookin/NinCardMemeCollectionBR/main/assets/img/icon.png" class="w-10 h-10 sm:w-16 sm:h-16 opacity-60" alt="Card Logo">
+                          <img src="https://raw.githubusercontent.com/aurioshlookin/NinHawkCCG20/main/assets/img/icon.png" class="w-10 h-10 sm:w-16 sm:h-16 opacity-60" alt="Card Logo">
                         </div>
                         <div class="card-front p-1 flex flex-col justify-between rounded-xl" id="gacha-card-front-${index}"></div>
                       </div>
