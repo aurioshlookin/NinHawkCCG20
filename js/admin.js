@@ -212,7 +212,7 @@
       if (!editingCardId) selectedAdminImage = "";
 
       try {
-        const response = await fetch('https://api.github.com/repos/aurioshlookin/NinCardMemeCollectionBR/contents/assets/cards');
+        const response = await fetch('https://api.github.com/repos/aurioshlookin/NinHawkCCG20/contents/assets/cards');
         if (!response.ok) throw new Error("Erro da API");
         const files = await response.json();
 
