@@ -242,9 +242,10 @@ window.loadGitHubImages = async () => {
 
   try {
     // garante banco carregado
-    if (!window.cardDatabase) {
-      await window.loadCardsCache();
-    }
+if (!window.cardDatabase) {
+  console.warn("cardDatabase ainda não pronta, continuando mesmo assim...");
+  window.cardDatabase = [];
+}
 
     const response = await fetch('https://api.github.com/repos/aurioshlookin/NinHawkCCG20/contents/assets/cards');
     if (!response.ok) throw new Error("Erro da API");
