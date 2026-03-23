@@ -14,9 +14,9 @@ window.loadTradesBoard = async () => {
   try {
     const q = query(collection(db, "trades"), where("status", "==", "open"));
     const snap = await getDocs(q);
-    allOpenTrades = [];
+    window.allOpenTrades = [];
     snap.forEach(doc => {
-      allOpenTrades.push({ id: doc.id, ...doc.data() });
+      window.allOpenTrades.push({ id: doc.id, ...doc.data() });
     });
     window.renderTradeBoard();
     window.updateTradeLimitsUI();
@@ -37,8 +37,8 @@ window.updateTradeLimitsUI = () => {
 
   if (blocker) {
     let hasActiveTrade = false;
-    if (allOpenTrades && window.currentUser) {
-      hasActiveTrade = allOpenTrades.some(t => t.fromUserId === window.currentUser.uid && t.status === 'open');
+    if (window.allOpenTrades && window.currentUser) {
+      hasActiveTrade = window.allOpenTrades.some(t => t.fromUserId === window.currentUser.uid && t.status === 'open');
     }
 
     if (tradesToday >= 2) {
@@ -123,28 +123,28 @@ window.updateTradeRatio = () => {
 
   if (!offerId || !reqTier) {
     infoEl.innerText = "";
-    currentOfferQty = 1;
-    currentReqQty = 1;
+    window.currentOfferQty = 1;
+    window.currentReqQty = 1;
     return;
   }
 
   const offerCard = window.cardDatabase.find(c => c.id === offerId);
   if (!offerCard) return;
 
-  currentOfferQty = 1;
-  currentReqQty = TRADE_RATIOS[offerCard.tier]?.[reqTier] || 1;
+  window.currentOfferQty = 1;
+  window.currentReqQty = TRADE_RATIOS[offerCard.tier]?.[reqTier] || 1;
 
-  if (currentReqQty === 1) {
+  if (window.currentReqQty === 1) {
     infoEl.innerText = `Você dá 1x [${offerCard.tier}] ⇄ O outro jogador envia 1x [${reqTier}] que não tem.`;
   } else {
-    infoEl.innerText = `Você dá 1x [${offerCard.tier}] ⇄ O outro jogador envia ${currentReqQty}x [${reqTier}] diferentes que não tem.`;
+    infoEl.innerText = `Você dá 1x [${offerCard.tier}] ⇄ O outro jogador envia ${window.currentReqQty}x [${reqTier}] diferentes que não tem.`;
   }
 };
 
 // Variáveis de estado
-let currentOfferQty = 1;
-let currentReqQty   = 1;
-let allOpenTrades   = [];
+window.window.currentOfferQty = 1;
+window.currentReqQty   = 1;
+window.allOpenTrades   = [];
 
 const tradeFormEl = document.getElementById('trade-form');
 if (tradeFormEl) {
@@ -156,7 +156,7 @@ if (tradeFormEl) {
 
     if (!offerId || !reqTier) return window.showMessage("Selecione a carta e a raridade desejada!");
     const inv = window.userData.inventory || {};
-    if ((inv[offerId] || 0) <= currentOfferQty) return window.showMessage("Não possui cartas suficientes para criar a oferta e manter 1 cópia.");
+    if ((inv[offerId] || 0) <= window.currentOfferQty) return window.showMessage("Não possui cartas suficientes para criar a oferta e manter 1 cópia.");
 
     const tp = window.getTradePeriod();
     const tradesToday = window.userData.lastTradeDate === tp ? (window.userData.tradesToday || 0) : 0;
@@ -170,9 +170,9 @@ if (tradeFormEl) {
         const userSnap = await transaction.get(userRef);
         let transInv = userSnap.data().inventory || {};
 
-        if ((transInv[offerId] || 0) <= currentOfferQty) throw "Cartas insuficientes no inventário.";
+        if ((transInv[offerId] || 0) <= window.currentOfferQty) throw "Cartas insuficientes no inventário.";
 
-        transInv[offerId] -= currentOfferQty;
+        transInv[offerId] -= window.currentOfferQty;
         transaction.update(userRef, { inventory: transInv });
 
         const newTradeRef = doc(collection(db, "trades"));
@@ -181,9 +181,9 @@ if (tradeFormEl) {
           fromUserName: window.currentUser.displayName,
           fromUserAvatar: window.currentUser.photoURL || '',
           offerCardId: offerId,
-          offerQuantity: currentOfferQty,
+          offerQuantity: window.currentOfferQty,
           requestTier: reqTier,
-          requestQuantity: currentReqQty,
+          requestQuantity: window.currentReqQty,
           status: 'open',
           timestamp: serverTimestamp()
         });
@@ -215,7 +215,7 @@ window.renderTradeBoard = () => {
   let myTradesCount = 0;
   let globalTradesCount = 0;
 
-  allOpenTrades.sort((a, b) => b.timestamp - a.timestamp).forEach(trade => {
+  window.allOpenTrades.sort((a, b) => b.timestamp - a.timestamp).forEach(trade => {
     const offerCard = window.cardDatabase.find(c => c.id === trade.offerCardId);
     if (!offerCard) return;
     const isMyTrade = trade.fromUserId === window.currentUser.uid;
