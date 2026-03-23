@@ -254,7 +254,7 @@ window.loadCardsCache();
         const usedImages = (window.cardDatabase || [])
   .filter(c => c.id !== editingCardId)
   .map(c => c.img);
-        const availableImages = files.filter(f => f.type === 'file' && f.name.match(/\.(png|jpg|jpeg|gif)$/i) && !usedImages.includes(f.name));
+        const availableImages = files.filter(f => f.type === 'file' && f.name.match(/\.(png|jpg|jpeg|gif)$/i) && !usedImages.some(img => img === f.name || img?.includes(f.name))
 
         grid.innerHTML = ''; loading.classList.add('hidden');
 
