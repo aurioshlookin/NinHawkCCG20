@@ -123,6 +123,9 @@ function initAuth() {
         }
   
         window.userData = data;
+        if (window.globalSettings?.cardsVersion !== data.cardsVersion) {
+  if (window.loadCardsCache) window.loadCardsCache();
+}
         window.userData.inventory           = data.inventory           || {};
         window.userData.claimedAchievements = data.claimedAchievements || {};
         window.userData.notifications       = data.notifications       || [];
