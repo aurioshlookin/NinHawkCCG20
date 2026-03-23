@@ -223,67 +223,88 @@ window.loadCardsCache();
 
     let isFetchingImages = false; 
     
-    window.loadGitHubImages = async () => {
-      if(isFetchingImages) return; 
-      isFetchingImages = true;
+window.loadGitHubImages = async () => {
+  if (isFetchingImages) return;
+  isFetchingImages = true;
 
-      const loading = document.getElementById('github-images-loading');
-      const grid = document.getElementById('github-images-grid');
-      const emptyMsg = document.getElementById('github-images-empty');
+  const loading = document.getElementById('github-images-loading');
+  const grid = document.getElementById('github-images-grid');
+  const emptyMsg = document.getElementById('github-images-empty');
 
-      if (!loading || !grid || !emptyMsg) {
-        isFetchingImages = false;
-        return;
-      }
-
-      loading.classList.remove('hidden'); emptyMsg.classList.add('hidden');
-      if (!editingCardId) selectedAdminImage = "";
-
-      try {
-
-  // ✅ GARANTE que o banco de cartas carregou
-  if (!window.cardDatabase) {
-    console.warn("cardDatabase ainda não carregado, aguardando...");
-    await window.loadCardsCache();
+  if (!loading || !grid || !emptyMsg) {
+    isFetchingImages = false;
+    return;
   }
 
-  const response = await fetch('https://api.github.com/repos/aurioshlookin/NinHawkCCG20/contents/assets/cards');
-        if (!response.ok) throw new Error("Erro da API");
-        const files = await response.json();
+  loading.classList.remove('hidden');
+  emptyMsg.classList.add('hidden');
+  if (!editingCardId) selectedAdminImage = "";
 
-        const usedImages = (window.cardDatabase || [])
-  .filter(c => c.id !== editingCardId)
-  .map(c => c.img);
-        const availableImages = files.filter(f => f.type === 'file' && f.name.match(/\.(png|jpg|jpeg|gif)$/i) && !usedImages.some(img => img === f.name || img?.includes(f.name))
+  try {
+    // garante banco carregado
+    if (!window.cardDatabase) {
+      await window.loadCardsCache();
+    }
 
-        grid.innerHTML = ''; loading.classList.add('hidden');
+    const response = await fetch('https://api.github.com/repos/aurioshlookin/NinHawkCCG20/contents/assets/cards');
+    if (!response.ok) throw new Error("Erro da API");
 
-        if (availableImages.length === 0) {
-          emptyMsg.classList.remove('hidden'); return;
-        }
+    const files = await response.json();
 
-        availableImages.forEach(file => {
-          const imgDiv = document.createElement('div');
-          imgDiv.className = "cursor-pointer rounded border-2 border-transparent hover:border-green-400 transition overflow-hidden h-24 bg-gray-800 relative group";
-          imgDiv.onclick = () => window.selectAdminImage(file.name, imgDiv);
-          
-          if (selectedAdminImage === file.name) {
-            imgDiv.classList.remove('border-transparent'); imgDiv.classList.add('border-green-500', 'ring-2', 'ring-green-400');
-          }
+    // todas imagens (SEM filtrar usadas)
+    const images = files.filter(f =>
+      f.type === 'file' &&
+      f.name.match(/\.(png|jpg|jpeg|gif)$/i)
+    );
 
-          imgDiv.innerHTML = `
-            <img src="${file.download_url}" class="w-full h-full object-cover group-hover:scale-110 transition duration-300">
-            <div class="absolute bottom-0 left-0 right-0 bg-black/80 text-[10px] text-center truncate px-1 py-0.5 text-white font-semibold">${file.name}</div>
-          `;
-          grid.appendChild(imgDiv);
-        });
-      } catch (err) {
-        loading.innerText = "Erro ao carregar imagens.";
-        loading.classList.replace('text-green-400', 'text-red-400');
-      } finally {
-        isFetchingImages = false; 
+    const usedImages = (window.cardDatabase || []).map(c => c.img);
+
+    grid.innerHTML = '';
+    loading.classList.add('hidden');
+
+    if (images.length === 0) {
+      emptyMsg.classList.remove('hidden');
+      return;
+    }
+
+    images.forEach(file => {
+      const isUsed = usedImages.includes(file.name);
+
+      const imgDiv = document.createElement('div');
+      imgDiv.className = "cursor-pointer rounded border-2 border-transparent hover:border-green-400 transition overflow-hidden h-24 bg-gray-800 relative group";
+
+      imgDiv.onclick = () => window.selectAdminImage(file.name, imgDiv);
+
+      if (selectedAdminImage === file.name) {
+        imgDiv.classList.remove('border-transparent');
+        imgDiv.classList.add('border-green-500', 'ring-2', 'ring-green-400');
       }
-    };
+
+      imgDiv.innerHTML = `
+        <img src="${file.download_url}" class="w-full h-full object-cover group-hover:scale-110 transition duration-300 ${isUsed ? 'opacity-60' : ''}">
+        
+        ${isUsed ? `
+          <div class="absolute top-1 right-1 bg-red-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold">
+            USADA
+          </div>
+        ` : ''}
+
+        <div class="absolute bottom-0 left-0 right-0 bg-black/80 text-[10px] text-center truncate px-1 py-0.5 text-white font-semibold">
+          ${file.name}
+        </div>
+      `;
+
+      grid.appendChild(imgDiv);
+    });
+
+  } catch (err) {
+    console.error(err);
+    loading.innerText = "Erro ao carregar imagens.";
+    loading.classList.replace('text-green-400', 'text-red-400');
+  } finally {
+    isFetchingImages = false;
+  }
+};
 
     window.selectAdminImage = (fileName, element) => {
       selectedAdminImage = fileName;
