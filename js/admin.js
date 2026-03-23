@@ -216,9 +216,13 @@ window.loadAdminPlayersLog = async () => {
 };
 
 // ============================================================
-// CORREÇÃO BUG: loadGitHubImages
-// Problema original: isFetchingImages travava em true se os
-// elementos não existissem; erros de rate limit eram silenciosos.
+// CORREÇÃO DO BUG: loadGitHubImages
+// Problema: `if (!editingCardId)` jogava ReferenceError porque
+// editingCardId é declarada em outro arquivo e pode não estar
+// disponível ainda quando admin.js executa esta linha.
+// O erro caía no catch silencioso e travava isFetchingImages=true,
+// bloqueando todas as chamadas seguintes para sempre.
+// Solução: usar typeof para checar variáveis de escopo externo.
 // ============================================================
 let isFetchingImages = false;
 
@@ -229,54 +233,42 @@ window.loadGitHubImages = async () => {
   const grid = document.getElementById('github-images-grid');
   const emptyMsg = document.getElementById('github-images-empty');
 
-  // Se os elementos do DOM não existem ainda, retorna SEM travar o flag
-  if (!loading || !grid || !emptyMsg) return;
+  if (!loading || !grid || !emptyMsg) {
+    return; // não trava o flag — elementos simplesmente não existem ainda
+  }
 
   isFetchingImages = true;
   loading.classList.remove('hidden');
   loading.innerText = 'Buscando imagens no GitHub...';
-  loading.className = 'text-green-400 text-sm text-center py-2';
   emptyMsg.classList.add('hidden');
-  grid.innerHTML = '';
 
-  if (!editingCardId) selectedAdminImage = "";
+  // CORREÇÃO: typeof evita ReferenceError em variáveis de outros arquivos
+  if (typeof editingCardId === 'undefined' || !editingCardId) {
+    if (typeof selectedAdminImage !== 'undefined') selectedAdminImage = "";
+  }
 
   try {
-    if (!window.cardDatabase) window.cardDatabase = [];
-
-    const apiUrl = 'https://api.github.com/repos/aurioshlookin/NinHawkCCG20/contents/assets/cards';
-
-    // ── OPCIONAL: adicione um GitHub Personal Access Token para aumentar
-    //    o rate limit de 60 para 5.000 requisições/hora.
-    //    Crie em: github.com → Settings → Developer settings → Fine-grained tokens
-    //    Permissão necessária: "Contents" read-only no seu repositório.
-    //
-    // const GITHUB_TOKEN = 'ghp_SEU_TOKEN_AQUI';
-    // const headers = { 'Authorization': `token ${GITHUB_TOKEN}` };
-    const headers = {};
-
-    const response = await fetch(apiUrl, { headers });
-
-    // Trata erros de rate limit com mensagem amigável
-    if (response.status === 403 || response.status === 429) {
-      const rateLimitReset = response.headers.get('X-RateLimit-Reset');
-      const resetTime = rateLimitReset
-        ? new Date(parseInt(rateLimitReset) * 1000).toLocaleTimeString('pt-BR')
-        : 'em alguns minutos';
-      throw new Error(`Rate limit da API do GitHub atingido. Tente novamente às ${resetTime}.`);
+    if (!window.cardDatabase) {
+      console.warn("cardDatabase ainda não pronta, continuando mesmo assim...");
+      window.cardDatabase = [];
     }
 
-    if (!response.ok) throw new Error(`Erro da API GitHub: ${response.status} ${response.statusText}`);
+    const response = await fetch('https://api.github.com/repos/aurioshlookin/NinHawkCCG20/contents/assets/cards');
+
+    if (!response.ok) throw new Error(`Erro da API: ${response.status}`);
 
     const files = await response.json();
 
+    // todas imagens (SEM filtrar usadas)
     const images = files.filter(f =>
       f.type === 'file' &&
       f.name.match(/\.(png|jpg|jpeg|gif)$/i)
     );
 
     const usedImages = (window.cardDatabase || []).map(c => c.img);
+    const currentSelected = (typeof selectedAdminImage !== 'undefined') ? selectedAdminImage : '';
 
+    grid.innerHTML = '';
     loading.classList.add('hidden');
 
     if (images.length === 0) {
@@ -290,7 +282,7 @@ window.loadGitHubImages = async () => {
       imgDiv.className = "cursor-pointer rounded border-2 border-transparent hover:border-green-400 transition overflow-hidden h-24 bg-gray-800 relative group";
       imgDiv.onclick = () => window.selectAdminImage(file.name, imgDiv);
 
-      if (selectedAdminImage === file.name) {
+      if (currentSelected === file.name) {
         imgDiv.classList.remove('border-transparent');
         imgDiv.classList.add('border-green-500', 'ring-2', 'ring-green-400');
       }
@@ -312,7 +304,7 @@ window.loadGitHubImages = async () => {
   } catch (err) {
     console.error('Erro ao carregar imagens do GitHub:', err);
     loading.classList.remove('hidden');
-    loading.innerText = `⚠️ ${err.message}`;
+    loading.innerText = `⚠️ Erro: ${err.message}`;
     loading.className = 'text-red-400 text-sm text-center py-2 font-bold';
   } finally {
     isFetchingImages = false;
@@ -359,7 +351,7 @@ window.updateAdminPreview = () => {
     tier: adminTierEl ? adminTierEl.value : 'C',
     layout: layoutVal,
     desc: adminDescEl ? adminDescEl.value : 'Descrição...',
-    img: selectedAdminImage || '',
+    img: (typeof selectedAdminImage !== 'undefined' ? selectedAdminImage : '') || '',
     imageZoom: adminZoomEl ? (parseFloat(adminZoomEl.value) || 1) : 1,
     imageTransX: window.adminCardState ? window.adminCardState.transX : 0,
     imageTransY: window.adminCardState ? window.adminCardState.transY : 0,
@@ -464,13 +456,10 @@ if (adminFormGlobal) {
     if (!selectedAdminImage) {
       msg.innerText = "Erro: Selecione a imagem acima clicando nela!";
       msg.className = "text-center font-bold text-sm mt-2 text-red-400";
-      msg.classList.remove('hidden');
-      setTimeout(() => msg.classList.add('hidden'), 3000);
-      return;
+      msg.classList.remove('hidden'); setTimeout(() => msg.classList.add('hidden'), 3000); return;
     }
 
-    btn.disabled = true;
-    btn.innerText = "Processando...";
+    btn.disabled = true; btn.innerText = "Processando...";
 
     try {
       const adminNameEl = document.getElementById('admin-name');
@@ -566,7 +555,6 @@ window.renderRarityBoard = () => {
   sortedCards.forEach(card => {
     const hasCard = (myInv[card.id] || 0) > 0;
     const ownersCount = stats[card.id] || 0;
-    const notOwnersCount = totalPlayers - ownersCount;
     const pct = totalPlayers > 0 ? ((ownersCount / totalPlayers) * 100).toFixed(1) : "0.0";
 
     const wrapper = document.createElement('div');
@@ -576,6 +564,7 @@ window.renderRarityBoard = () => {
       wrapper.onclick = () => window.showCardDetail(card.id);
     }
 
+    // Se não tiver a carta, clona o objeto disfarçando nome e descrição, e mantendo imagem silhuetada
     const cardDisplayObj = hasCard ? card : { ...card, name: '???', desc: '???' };
 
     wrapper.innerHTML = `
@@ -589,6 +578,8 @@ window.renderRarityBoard = () => {
     `;
 
     grid.appendChild(wrapper);
+
+    // Renderiza usando o motor de cartas real (isAlbum = true aplica bordas e tamanho da raridade)
     window.renderCardHTML(`rarity-card-${card.id}`, cardDisplayObj, false, true, myInv);
   });
 };
