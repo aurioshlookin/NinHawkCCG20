@@ -31,14 +31,14 @@ window.updateTradeLimitsUI = () => {
   const msg = document.getElementById('trade-form-blocker-msg');
 
   const tp = window.getTradePeriod();
-  const tradesToday = userData.lastTradeDate === tp ? (userData.tradesToday || 0) : 0;
+  const tradesToday = window.userData.lastTradeDate === tp ? (window.userData.tradesToday || 0) : 0;
 
   if (limitCount) limitCount.innerText = tradesToday;
 
   if (blocker) {
     let hasActiveTrade = false;
-    if (allOpenTrades && currentUser) {
-      hasActiveTrade = allOpenTrades.some(t => t.fromUserId === currentUser.uid && t.status === 'open');
+    if (allOpenTrades && window.currentUser) {
+      hasActiveTrade = allOpenTrades.some(t => t.fromUserId === window.currentUser.uid && t.status === 'open');
     }
 
     if (tradesToday >= 2) {
@@ -62,7 +62,7 @@ window.updateTradeOptions = () => {
   const currentOffer = offerSelect.value;
   offerSelect.innerHTML = '<option value="">Selecione uma carta repetida...</option>';
 
-  const inv = userData.inventory || {};
+  const inv = window.userData.inventory || {};
   window.cardDatabase.forEach(card => {
     const totalQty = inv[card.id] || 0;
     if (totalQty > 1) {
@@ -95,7 +95,6 @@ window.updateRequestTierOptions = () => {
 
     const ratios = TRADE_RATIOS[offerCard.tier] || {};
 
-    // CORREÇÃO: mostra a quantidade já no label da opção
     Object.entries(ratios).forEach(([tier, qty]) => {
       const label = qty === 1
         ? `Rank ${tier} — 1x ${tier} por 1x ${offerCard.tier}`
@@ -142,6 +141,11 @@ window.updateTradeRatio = () => {
   }
 };
 
+// Variáveis de estado
+let currentOfferQty = 1;
+let currentReqQty   = 1;
+let allOpenTrades   = [];
+
 const tradeFormEl = document.getElementById('trade-form');
 if (tradeFormEl) {
   tradeFormEl.addEventListener('submit', async (e) => {
@@ -151,18 +155,18 @@ if (tradeFormEl) {
     const reqTier = document.getElementById('trade-request-tier')?.value;
 
     if (!offerId || !reqTier) return window.showMessage("Selecione a carta e a raridade desejada!");
-    const inv = userData.inventory || {};
+    const inv = window.userData.inventory || {};
     if ((inv[offerId] || 0) <= currentOfferQty) return window.showMessage("Não possui cartas suficientes para criar a oferta e manter 1 cópia.");
 
     const tp = window.getTradePeriod();
-    const tradesToday = userData.lastTradeDate === tp ? (userData.tradesToday || 0) : 0;
+    const tradesToday = window.userData.lastTradeDate === tp ? (window.userData.tradesToday || 0) : 0;
     if (tradesToday >= 2) return window.showMessage("Você já concluiu as suas trocas neste período.");
 
     if (btn) { btn.disabled = true; btn.innerText = "Publicando..."; }
 
     try {
       await runTransaction(db, async (transaction) => {
-        const userRef = doc(db, "users", currentUser.uid);
+        const userRef = doc(db, "users", window.currentUser.uid);
         const userSnap = await transaction.get(userRef);
         let transInv = userSnap.data().inventory || {};
 
@@ -173,9 +177,9 @@ if (tradeFormEl) {
 
         const newTradeRef = doc(collection(db, "trades"));
         transaction.set(newTradeRef, {
-          fromUserId: currentUser.uid,
-          fromUserName: currentUser.displayName,
-          fromUserAvatar: currentUser.photoURL || '',
+          fromUserId: window.currentUser.uid,
+          fromUserName: window.currentUser.displayName,
+          fromUserAvatar: window.currentUser.photoURL || '',
           offerCardId: offerId,
           offerQuantity: currentOfferQty,
           requestTier: reqTier,
@@ -191,7 +195,7 @@ if (tradeFormEl) {
       if (window.updateRequestTierOptions) window.updateRequestTierOptions();
 
       if (window.loadTradesBoard) await window.loadTradesBoard();
-      await window.logSystemAction(`${currentUser.displayName} publicou uma oferta de troca no Mural.`);
+      await window.logSystemAction(`${window.currentUser.displayName} publicou uma oferta de troca no Mural.`);
     } catch (err) {
       window.showMessage("Erro ao publicar: " + err);
     } finally {
@@ -214,7 +218,7 @@ window.renderTradeBoard = () => {
   allOpenTrades.sort((a, b) => b.timestamp - a.timestamp).forEach(trade => {
     const offerCard = window.cardDatabase.find(c => c.id === trade.offerCardId);
     if (!offerCard) return;
-    const isMyTrade = trade.fromUserId === currentUser.uid;
+    const isMyTrade = trade.fromUserId === window.currentUser.uid;
 
     if (isMyTrade) {
       myTradesCount++;
@@ -223,7 +227,7 @@ window.renderTradeBoard = () => {
           <div class="flex items-center gap-2">
             <span class="text-red-400 font-bold">- ${trade.offerQuantity || 1}x ${offerCard.name} [${offerCard.tier}]</span>
             <span class="text-gray-500">por</span>
-            <span class="text-green-400 font-bold">+ ${trade.requestQuantity}x Rank ${trade.requestTier}</span>
+            <span class="text-green-400 font-bold">+ ${trade.requestQuantity || 1}x Rank ${trade.requestTier}</span>
           </div>
           <button onclick="window.cancelTrade('${trade.id}')" class="text-gray-400 hover:text-red-500 transition" title="Cancelar Oferta">✖</button>
         </div>
@@ -231,11 +235,10 @@ window.renderTradeBoard = () => {
     }
 
     globalTradesCount++;
-    const myInv = userData.inventory || {};
+    const myInv = window.userData.inventory || {};
     const alreadyHaveOffered = (myInv[offerCard.id] || 0) > 0;
 
-    // Monta label da ratio para o card do mural
-    const ratioLabel = trade.requestQuantity === 1
+    const ratioLabel = (trade.requestQuantity || 1) === 1
       ? `1x [${trade.requestTier}]`
       : `${trade.requestQuantity}x [${trade.requestTier}] diferentes`;
 
@@ -245,7 +248,7 @@ window.renderTradeBoard = () => {
     } else if (alreadyHaveOffered) {
       actionBtnHTML = `<button disabled class="w-full py-2 font-bold text-[11px] uppercase transition bg-gray-700 text-gray-400 cursor-not-allowed">Já tem esta carta</button>`;
     } else {
-      actionBtnHTML = `<button onclick="window.openAcceptTradeModal('${trade.id}', '${trade.fromUserId}', '${offerCard.id}', '${trade.requestTier}', ${trade.requestQuantity})" class="w-full py-2 font-bold text-sm transition bg-green-600 hover:bg-green-500 text-white shadow-[0_0_10px_rgba(34,197,94,0.3)]">Aceitar Troca</button>`;
+      actionBtnHTML = `<button onclick="window.openAcceptTradeModal('${trade.id}', '${trade.fromUserId}', '${offerCard.id}', '${trade.requestTier}', ${trade.requestQuantity || 1})" class="w-full py-2 font-bold text-sm transition bg-green-600 hover:bg-green-500 text-white shadow-[0_0_10px_rgba(34,197,94,0.3)]">Aceitar Troca</button>`;
     }
 
     globalGrid.innerHTML += `
@@ -267,7 +270,7 @@ window.renderTradeBoard = () => {
           <div class="w-16 h-20 bg-gray-800 rounded border-2 border-green-500/50 border-dashed flex flex-col justify-center items-center relative overflow-hidden">
             <span class="text-xl font-bold text-green-500/50">?</span>
             <span class="absolute top-0 left-0 bg-gray-900 text-green-400 text-[8px] px-1 font-bold border-b border-r border-green-500/50">R.${trade.requestTier}</span>
-            <span class="absolute bottom-0 right-0 bg-green-600 text-white text-[10px] px-1 font-bold rounded-tl z-10">${trade.requestQuantity}x</span>
+            <span class="absolute bottom-0 right-0 bg-green-600 text-white text-[10px] px-1 font-bold rounded-tl z-10">${trade.requestQuantity || 1}x</span>
           </div>
         </div>
         ${actionBtnHTML}
@@ -288,9 +291,9 @@ window.cancelTrade = (tradeId) => {
         if (!tradeSnap.exists() || tradeSnap.data().status !== 'open') throw "Esta oferta não está disponível.";
 
         const tradeData = tradeSnap.data();
-        if (tradeData.fromUserId !== currentUser.uid) throw "Você não é o dono desta oferta.";
+        if (tradeData.fromUserId !== window.currentUser.uid) throw "Você não é o dono desta oferta.";
 
-        const userRef = doc(db, "users", currentUser.uid);
+        const userRef = doc(db, "users", window.currentUser.uid);
         const userSnap = await transaction.get(userRef);
         let transInv = userSnap.data().inventory || {};
 
@@ -311,14 +314,14 @@ window.cancelTrade = (tradeId) => {
 window.openAcceptTradeModal = async (tradeId, fromUserId, offerId, reqTier, reqQty) => {
   try {
     const tp = window.getTradePeriod();
-    const tradesToday = userData.lastTradeDate === tp ? (userData.tradesToday || 0) : 0;
+    const tradesToday = window.userData.lastTradeDate === tp ? (window.userData.tradesToday || 0) : 0;
     if (tradesToday >= 2) return window.showMessage("Você já atingiu o seu limite de trocas neste período.");
 
     const userASnap = await getDoc(doc(db, "users", fromUserId));
     if (!userASnap.exists()) throw "O criador da oferta não foi encontrado.";
     const invA = userASnap.data().inventory || {};
 
-    const myInv = userData.inventory || {};
+    const myInv = window.userData.inventory || {};
     let validCardsForB = [];
 
     window.cardDatabase.forEach(c => {
@@ -340,7 +343,6 @@ window.openAcceptTradeModal = async (tradeId, fromUserId, offerId, reqTier, reqQ
     if (!grid) return;
     grid.innerHTML = '';
 
-    // Atualiza o texto descritivo do modal
     const tradeAcceptDesc = document.getElementById('trade-accept-desc');
     if (tradeAcceptDesc) {
       tradeAcceptDesc.innerHTML = `Escolha <strong class="text-white">${reqQty} carta(s)</strong> de Rank <strong class="text-white">${reqTier}</strong> repetidas que você tem e que o outro jogador ainda não possui.`;
@@ -418,7 +420,7 @@ window.confirmAcceptTrade = async () => {
     await runTransaction(db, async (transaction) => {
       const tradeRef = doc(db, "trades", state.tradeId);
       const userARef = doc(db, "users", state.fromUserId);
-      const userBRef = doc(db, "users", currentUser.uid);
+      const userBRef = doc(db, "users", window.currentUser.uid);
 
       const tradeSnap = await transaction.get(tradeRef);
       if (!tradeSnap.exists() || tradeSnap.data().status !== 'open') throw "A troca já foi fechada por outra pessoa.";
@@ -465,7 +467,7 @@ window.confirmAcceptTrade = async () => {
       const newNotif = {
         id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
         type: 'trade_accepted',
-        message: `🎉 <strong class="text-green-400">${currentUser.displayName}</strong> aceitou a sua troca! Levou <strong class="text-red-400">${offQty}x ${offerCardName}</strong> e enviou: <strong class="text-yellow-400">${sentCardNamesString}</strong>.`,
+        message: `🎉 <strong class="text-green-400">${window.currentUser.displayName}</strong> aceitou a sua troca! Levou <strong class="text-red-400">${offQty}x ${offerCardName}</strong> e enviou: <strong class="text-yellow-400">${sentCardNamesString}</strong>.`,
         read: false,
         timestamp: Date.now()
       };
@@ -476,7 +478,7 @@ window.confirmAcceptTrade = async () => {
 
       transaction.update(userARef, { inventory: invA, tradesToday: tradesA + 1, lastTradeDate: tp, totalTradesCompleted: totalTradesA, notifications: notifsA });
       transaction.update(userBRef, { inventory: invB, tradesToday: tradesB + 1, lastTradeDate: tp, totalTradesCompleted: totalTradesB });
-      transaction.update(tradeRef, { status: 'completed', acceptedBy: currentUser.uid });
+      transaction.update(tradeRef, { status: 'completed', acceptedBy: window.currentUser.uid });
     });
 
     const modal = document.getElementById('trade-accept-modal');
@@ -484,7 +486,7 @@ window.confirmAcceptTrade = async () => {
     window.showMessage("Troca realizada com sucesso!");
 
     if (window.loadTradesBoard) await window.loadTradesBoard();
-    await window.logSystemAction(`${currentUser.displayName} concluiu uma troca no Mural.`);
+    await window.logSystemAction(`${window.currentUser.displayName} concluiu uma troca no Mural.`);
   } catch (e) {
     window.showMessage("Falha na transação: " + e);
   } finally {
@@ -502,7 +504,7 @@ window.updateFusionOptions = () => {
   const currentVal = select.value;
   select.innerHTML = '<option value="">Selecione o Rank para sacrificar...</option>';
 
-  const inv = userData.inventory || {};
+  const inv = window.userData.inventory || {};
   let hasOptions = false;
 
   Object.keys(FUSION_RULES).forEach(tier => {
