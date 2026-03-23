@@ -201,6 +201,7 @@
     let currentPackCards = [];
     let selectedCardsIndices = [];
     let isOpeningPack = false;
+    let isProcessingPackTransaction = false;
 
     function getRandomCard(isPremium = false) {
       if(window.cardDatabase.length === 0) return null; 
