@@ -130,7 +130,7 @@ window.deleteCard = (id, name) => {
   window.showMessage(`Tem certeza que deseja EXCLUIR permanentemente a carta "${name}"?`, true, async () => {
     try {
       await deleteDoc(doc(db, "cards", id));
-      await updateDoc(doc(db, "settings", "global"), { cardsVersion: Date.now() });
+      await setDoc(doc(db, "settings", "global"), { cardsVersion: Date.now() }, { merge: true });
       await window.logSystemAction(`Admin ${currentUser.displayName} deletou a carta: ${name}`);
       window.showMessage("Carta excluída com sucesso.");
     } catch (err) {
@@ -165,7 +165,7 @@ window.renumerateCollection = async () => {
       });
 
       await batch.commit();
-      await updateDoc(doc(db, "settings", "global"), { cardsVersion: Date.now() });
+      await setDoc(doc(db, "settings", "global"), { cardsVersion: Date.now() }, { merge: true });
       await window.logSystemAction(`Admin ${currentUser.displayName} renumerou as cartas da coleção: ${version}`);
       window.showMessage(`Numeração da coleção "${version}" aplicada com sucesso!`);
     } catch (err) {
@@ -478,7 +478,7 @@ if (adminFormGlobal) {
         window.updateAdminPreview();
       }
 
-      await updateDoc(doc(db, "settings", "global"), { cardsVersion: Date.now() });
+      await setDoc(doc(db, "settings", "global"), { cardsVersion: Date.now() }, { merge: true });
       await window.logSystemAction(`Admin ${currentUser.displayName} ${editingCardId ? 'editou' : 'criou'} a carta: ${newCard.name} (${newCard.tier})`);
 
       msg.className = "text-center font-bold text-sm mt-2 text-green-400";
