@@ -28,8 +28,10 @@ window.loadCardsCache = async () => {
   } catch (err) { console.error("Erro ao carregar cartas:", err); }
 };
 
-// Chama automaticamente quando o módulo carrega
-window.loadCardsCache();
+// CORREÇÃO: removida a chamada automática window.loadCardsCache() daqui.
+// O Firebase (db, getDoc, etc.) ainda não está disponível quando este
+// script carrega. A chamada deve ser feita pelo auth.js após o login,
+// ou pelo onAuthStateChanged quando o contexto já estiver pronto.
 
 window.toggleRegistration = async () => {
   if (!currentUser || userData.role !== 'admin') return;
@@ -105,9 +107,7 @@ window.sendPacksToAll = async (e) => {
         }
       });
 
-      if (count > 0) {
-        batches.push(currentBatch.commit());
-      }
+      if (count > 0) batches.push(currentBatch.commit());
 
       await Promise.all(batches);
       await window.logSystemAction(`Admin ${currentUser.displayName} distribuiu em massa ${amount} pacotes ${typeName} para todos os jogadores.`);
@@ -148,9 +148,7 @@ window.renumerateCollection = async () => {
   window.showMessage(`Isto vai renumerar e ordenar as ${cardsToUpdate.length} cartas da coleção "${version}" automaticamente. Tem certeza?`, true, async () => {
     try {
       cardsToUpdate.sort((a, b) => {
-        if (TIER_VALUES[b.tier] !== TIER_VALUES[a.tier]) {
-          return TIER_VALUES[b.tier] - TIER_VALUES[a.tier];
-        }
+        if (TIER_VALUES[b.tier] !== TIER_VALUES[a.tier]) return TIER_VALUES[b.tier] - TIER_VALUES[a.tier];
         return a.name.localeCompare(b.name);
       });
 
@@ -158,8 +156,7 @@ window.renumerateCollection = async () => {
       let count = 1;
       cardsToUpdate.forEach(c => {
         const newNumStr = String(count).padStart(3, '0');
-        const cardRef = doc(db, "cards", c.id);
-        batch.update(cardRef, { cardNumber: newNumStr });
+        batch.update(doc(db, "cards", c.id), { cardNumber: newNumStr });
         count++;
       });
 
@@ -215,15 +212,6 @@ window.loadAdminPlayersLog = async () => {
   }
 };
 
-// ============================================================
-// CORREÇÃO DO BUG: loadGitHubImages
-// Problema: `if (!editingCardId)` jogava ReferenceError porque
-// editingCardId é declarada em outro arquivo e pode não estar
-// disponível ainda quando admin.js executa esta linha.
-// O erro caía no catch silencioso e travava isFetchingImages=true,
-// bloqueando todas as chamadas seguintes para sempre.
-// Solução: usar typeof para checar variáveis de escopo externo.
-// ============================================================
 let isFetchingImages = false;
 
 window.loadGitHubImages = async () => {
@@ -233,38 +221,25 @@ window.loadGitHubImages = async () => {
   const grid = document.getElementById('github-images-grid');
   const emptyMsg = document.getElementById('github-images-empty');
 
-  if (!loading || !grid || !emptyMsg) {
-    return; // não trava o flag — elementos simplesmente não existem ainda
-  }
+  if (!loading || !grid || !emptyMsg) return;
 
   isFetchingImages = true;
   loading.classList.remove('hidden');
   loading.innerText = 'Buscando imagens no GitHub...';
   emptyMsg.classList.add('hidden');
 
-  // CORREÇÃO: typeof evita ReferenceError em variáveis de outros arquivos
   if (typeof editingCardId === 'undefined' || !editingCardId) {
     if (typeof selectedAdminImage !== 'undefined') selectedAdminImage = "";
   }
 
   try {
-    if (!window.cardDatabase) {
-      console.warn("cardDatabase ainda não pronta, continuando mesmo assim...");
-      window.cardDatabase = [];
-    }
+    if (!window.cardDatabase) window.cardDatabase = [];
 
     const response = await fetch('https://api.github.com/repos/aurioshlookin/NinHawkCCG20/contents/assets/cards');
-
     if (!response.ok) throw new Error(`Erro da API: ${response.status}`);
 
     const files = await response.json();
-
-    // todas imagens (SEM filtrar usadas)
-    const images = files.filter(f =>
-      f.type === 'file' &&
-      f.name.match(/\.(png|jpg|jpeg|gif)$/i)
-    );
-
+    const images = files.filter(f => f.type === 'file' && f.name.match(/\.(png|jpg|jpeg|gif)$/i));
     const usedImages = (window.cardDatabase || []).map(c => c.img);
     const currentSelected = (typeof selectedAdminImage !== 'undefined') ? selectedAdminImage : '';
 
@@ -289,14 +264,8 @@ window.loadGitHubImages = async () => {
 
       imgDiv.innerHTML = `
         <img src="${file.download_url}" class="w-full h-full object-cover group-hover:scale-110 transition duration-300 ${isUsed ? 'opacity-60' : ''}" loading="lazy">
-        ${isUsed ? `
-          <div class="absolute top-1 right-1 bg-red-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold">
-            USADA
-          </div>
-        ` : ''}
-        <div class="absolute bottom-0 left-0 right-0 bg-black/80 text-[10px] text-center truncate px-1 py-0.5 text-white font-semibold">
-          ${file.name}
-        </div>
+        ${isUsed ? `<div class="absolute top-1 right-1 bg-red-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold">USADA</div>` : ''}
+        <div class="absolute bottom-0 left-0 right-0 bg-black/80 text-[10px] text-center truncate px-1 py-0.5 text-white font-semibold">${file.name}</div>
       `;
       grid.appendChild(imgDiv);
     });
@@ -456,7 +425,9 @@ if (adminFormGlobal) {
     if (!selectedAdminImage) {
       msg.innerText = "Erro: Selecione a imagem acima clicando nela!";
       msg.className = "text-center font-bold text-sm mt-2 text-red-400";
-      msg.classList.remove('hidden'); setTimeout(() => msg.classList.add('hidden'), 3000); return;
+      msg.classList.remove('hidden');
+      setTimeout(() => msg.classList.add('hidden'), 3000);
+      return;
     }
 
     btn.disabled = true; btn.innerText = "Processando...";
@@ -498,9 +469,7 @@ if (adminFormGlobal) {
         window.adminCardState = { transX: 0, transY: 0 };
         selectedAdminImage = "";
         const grid = document.getElementById('github-images-grid');
-        if(grid) {
-          Array.from(grid.children).forEach(child => child.classList.remove('border-green-500', 'ring-2', 'border-transparent'));
-        }
+        if(grid) Array.from(grid.children).forEach(child => child.classList.remove('border-green-500', 'ring-2', 'border-transparent'));
         window.suggestNextCardNumber();
         window.updateAdminPreview();
       }
@@ -560,11 +529,8 @@ window.renderRarityBoard = () => {
     const wrapper = document.createElement('div');
     wrapper.className = `flex flex-col items-center p-3 rounded-xl border ${hasCard ? 'bg-gray-800 border-purple-500/30 cursor-pointer' : 'bg-gray-900 border-gray-700 opacity-60 grayscale'} transition hover:opacity-100`;
 
-    if (hasCard) {
-      wrapper.onclick = () => window.showCardDetail(card.id);
-    }
+    if (hasCard) wrapper.onclick = () => window.showCardDetail(card.id);
 
-    // Se não tiver a carta, clona o objeto disfarçando nome e descrição, e mantendo imagem silhuetada
     const cardDisplayObj = hasCard ? card : { ...card, name: '???', desc: '???' };
 
     wrapper.innerHTML = `
@@ -578,8 +544,6 @@ window.renderRarityBoard = () => {
     `;
 
     grid.appendChild(wrapper);
-
-    // Renderiza usando o motor de cartas real (isAlbum = true aplica bordas e tamanho da raridade)
     window.renderCardHTML(`rarity-card-${card.id}`, cardDisplayObj, false, true, myInv);
   });
 };
