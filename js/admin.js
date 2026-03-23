@@ -240,11 +240,20 @@ window.loadCardsCache();
       if (!editingCardId) selectedAdminImage = "";
 
       try {
-        const response = await fetch('https://api.github.com/repos/aurioshlookin/NinHawkCCG20/contents/assets/cards');
+
+  // ✅ GARANTE que o banco de cartas carregou
+  if (!window.cardDatabase) {
+    console.warn("cardDatabase ainda não carregado, aguardando...");
+    await window.loadCardsCache();
+  }
+
+  const response = await fetch('https://api.github.com/repos/aurioshlookin/NinHawkCCG20/contents/assets/cards');
         if (!response.ok) throw new Error("Erro da API");
         const files = await response.json();
 
-        const usedImages = window.cardDatabase.filter(c => c.id !== editingCardId).map(c => c.img);
+        const usedImages = (window.cardDatabase || [])
+  .filter(c => c.id !== editingCardId)
+  .map(c => c.img);
         const availableImages = files.filter(f => f.type === 'file' && f.name.match(/\.(png|jpg|jpeg|gif)$/i) && !usedImages.includes(f.name));
 
         grid.innerHTML = ''; loading.classList.add('hidden');
