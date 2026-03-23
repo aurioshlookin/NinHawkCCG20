@@ -4,6 +4,10 @@
 // Cloud Function em vez de ler admin_security diretamente.
 // ============================================================
 
+// Variáveis de estado do painel admin
+let editingCardId = null;
+let selectedAdminImage = "";
+
 // ── Carregamento do banco de cartas ───────────────────────────
 window.loadCardsCache = async () => {
   try {
