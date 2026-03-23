@@ -514,8 +514,11 @@
         costBadge.classList.remove('hidden');
         costBadge.classList.add('flex');
 
-        resultTierText.innerText = `Nova Carta: Rank ${rule.next}`;
-        resultTierText.className = `w-full border rounded-lg px-4 py-3 text-center font-bold shadow-inner ${rule.textColor} ${rule.color.replace('border-', 'bg-').replace('400', '900/30')} ${rule.color}`;
+const isDarkBg = ['S', 'SS'].includes(rule.next);
+const textColorFix = isDarkBg ? 'text-white' : rule.textColor;
+
+resultTierText.innerText = `Nova Carta: Rank ${rule.next}`;
+resultTierText.className = `w-full border rounded-lg px-4 py-3 text-center font-bold shadow-inner ${textColorFix} ${rule.color.replace('border-', 'bg-').replace('400', '900/30')} ${rule.color}`;
         
         resultBox.className = `w-40 h-60 bg-gray-900 rounded-xl border-4 border-dashed flex flex-col items-center justify-center relative shadow-[0_0_30px_rgba(255,255,255,0.1)] overflow-hidden ${rule.color}`;
         resultBox.innerHTML = `<div class="absolute inset-0 bg-gradient-to-t from-gray-900/40 to-transparent"></div><span class="text-6xl font-black z-10 drop-shadow-md ${rule.textColor}">?</span>`;
