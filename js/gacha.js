@@ -204,6 +204,7 @@
     let isOpeningPack = false;
     let isProcessingPackTransaction = false;
     let currentAchievType = null;
+    let achievSelectedIndices = [];
 
     function getRandomCard(isPremium = false) {
       if(window.cardDatabase.length === 0) return null; 
