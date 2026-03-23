@@ -3,6 +3,34 @@
 // BUG-06 FIX: verificação do PIN agora chama verifyAdminPin()
 // Cloud Function em vez de ler admin_security diretamente.
 // ============================================================
+
+// ── Carregamento do banco de cartas ───────────────────────────
+window.loadCardsCache = async () => {
+  try {
+    const globalSnap = await getDoc(doc(db, "settings", "global"));
+    let currentVersion = Date.now();
+    if (globalSnap.exists()) currentVersion = globalSnap.data().cardsVersion;
+
+    const localCards   = localStorage.getItem('nin_cards_cache');
+    const localVersion = localStorage.getItem('nin_cards_version');
+
+    if (localCards && localVersion == currentVersion) {
+      window.cardDatabase = JSON.parse(localCards);
+      if (window.updateAllCardDependentUI) window.updateAllCardDependentUI();
+    } else {
+      const cardsSnap = await getDocs(collection(db, "cards"));
+      window.cardDatabase = [];
+      cardsSnap.forEach(d => window.cardDatabase.push({ id: d.id, ...d.data() }));
+      localStorage.setItem('nin_cards_cache', JSON.stringify(window.cardDatabase));
+      localStorage.setItem('nin_cards_version', currentVersion);
+      if (window.updateAllCardDependentUI) window.updateAllCardDependentUI();
+    }
+  } catch (err) { console.error("Erro ao carregar cartas:", err); }
+};
+
+// Chama automaticamente quando o módulo carrega
+window.loadCardsCache();
+
     window.toggleRegistration = async () => {
       if (!currentUser || userData.role !== 'admin') return;
       const newState = !globalSettings.registrationsOpen;
