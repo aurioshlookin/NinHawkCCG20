@@ -31,6 +31,7 @@
       if (!currentUser || isProcessingPackTransaction || window.cardDatabase.length === 0) return;
       if ((userData.premiumPullsAvailable || 0) <= 0) return;
       isProcessingPackTransaction = true;
+        currentAchievType = 'premium';
 
       try {
         const token = await currentUser.getIdToken();
@@ -202,6 +203,7 @@
     let selectedCardsIndices = [];
     let isOpeningPack = false;
     let isProcessingPackTransaction = false;
+    let currentAchievType = null;
 
     function getRandomCard(isPremium = false) {
       if(window.cardDatabase.length === 0) return null; 
