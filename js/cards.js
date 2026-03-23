@@ -50,7 +50,7 @@
         contentHTML = `
           ${foilEffect}
           <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center">
-            <img src="${fullImageUrl}" style="${imgStyle}" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%23374151'/%3E%3Ctext x='75' y='80' text-anchor='middle' fill='%236b7280' font-size='11' font-family='sans-serif'%3ESem Imagem%3C/text%3E%3C/svg%3E';">
+            <img src="${fullImageUrl}" style="${imgStyle}"onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27150%27 height=%27150%27 viewBox=%270 0 150 150%27%3E%3Crect width=%27150%27 height=%27150%27 fill=%27%23374151%27/%3E%3Ctext x=%2775%27 y=%2780%27 text-anchor=%27middle%27 fill=%27%236b7280%27 font-size=%2711%27 font-family=%27sans-serif%27%3ESem Imagem%3C/text%3E%3C/svg%3E';">
           </div>
           <div class="absolute top-1 left-1 right-1 z-10 flex justify-between pointer-events-none">
             <span class="font-black text-xs bg-black/80 px-1.5 py-0.5 rounded border border-gray-600 ${tierColorText[cardData.tier]} shadow-md">R.${cardData.tier}</span>
@@ -74,7 +74,7 @@
             </div>
             
             <div class="w-full aspect-[4/3] bg-black border-2 border-gray-500 overflow-hidden shadow-inner flex-shrink-0 rounded flex items-center justify-center">
-              <img src="${fullImageUrl}" style="${imgStyle}" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%23374151'/%3E%3Ctext x='75' y='80' text-anchor='middle' fill='%236b7280' font-size='11' font-family='sans-serif'%3ESem Imagem%3C/text%3E%3C/svg%3E';">
+              <img src="${fullImageUrl}" style="${imgStyle}"onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27150%27 height=%27150%27 viewBox=%270 0 150 150%27%3E%3Crect width=%27150%27 height=%27150%27 fill=%27%23374151%27/%3E%3Ctext x=%2775%27 y=%2780%27 text-anchor=%27middle%27 fill=%27%236b7280%27 font-size=%2711%27 font-family=%27sans-serif%27%3ESem Imagem%3C/text%3E%3C/svg%3E';">
             </div>
             
             <div class="flex-grow mt-1 sm:mt-1.5 bg-black/40 p-1 sm:p-1.5 rounded border border-white/20 overflow-hidden text-center flex flex-col items-center justify-center relative">
