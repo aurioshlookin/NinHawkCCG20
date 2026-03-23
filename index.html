@@ -512,7 +512,7 @@
               <div>
                 <label class="block text-sm font-medium text-gray-300 mb-1">A Carta Que Eu Ofereço:</label>
                 <div class="flex items-center gap-3">
-                  <select id="trade-offer" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500" required>
+                  <select id="trade-offer" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500" required onchange="updateRequestTierOptions()">
                     <option value="">Selecione uma carta repetida...</option>
                   </select>
                   <img id="trade-offer-preview" class="hidden w-10 h-14 object-cover rounded border border-gray-500 bg-gray-800" src="" alt="preview">
