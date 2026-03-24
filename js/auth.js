@@ -88,10 +88,10 @@ function initAuth() {
         const el = document.getElementById(id);
         if (el) el.classList.remove("hidden");
       });
-      ["mobile-btn-logout"].forEach.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.remove("hidden");
-      });
+["mobile-btn-logout"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove("hidden");
+});
   
       if (document.getElementById("section-explore")?.classList.contains("flex")) {
         window.switchTab("gacha");
@@ -146,7 +146,7 @@ function initAuth() {
       if (loggedOutView) { loggedOutView.classList.remove("hidden"); loggedOutView.style.display = "flex"; }
       if (loggedInView)  { loggedInView.classList.add("hidden"); loggedInView.classList.remove("flex"); loggedInView.style.display = "none"; }
   
-      ["tab-admin","tab-trade","tab-achievements","tab-gacha","tab-album","tab-rarity","tab-fusion",
+["tab-admin","tab-trade","tab-achievements","tab-gacha","tab-album","tab-rarity","tab-fusion",
  "mobile-btn-logout"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add("hidden");
