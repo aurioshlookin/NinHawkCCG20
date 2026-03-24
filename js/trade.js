@@ -169,8 +169,10 @@ if (tradeFormEl) {
     if (btn) { btn.disabled = true; btn.innerText = "Publicando..."; }
 
     // Captura os valores atuais antes da transação
-    const offerQtyToSave = window.currentOfferQty || 1;
-    const reqQtyToSave   = window.currentReqQty   || 1;
+const offerCard = window.cardDatabase.find(c => c.id === offerId);
+
+const offerQtyToSave = 1;
+const reqQtyToSave = TRADE_RATIOS[offerCard.tier]?.[reqTier] || 1;
 
     try {
       await runTransaction(db, async (transaction) => {
