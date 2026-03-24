@@ -405,7 +405,10 @@ let lastPullsAvailable = null;
     };
 
     window.updateGachaUI = () => {
-  if (userData.pullsAvailable === lastPullsAvailable) return;
+  const currentState = `${userData.pullsAvailable}-${userData.premiumPullsAvailable}`;
+
+if (currentState === lastPullsAvailable) return;
+lastPullsAvailable = currentState;
   lastPullsAvailable = userData.pullsAvailable;
             
       const pullsCountEl = document.getElementById('pulls-count');
