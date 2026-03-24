@@ -240,8 +240,6 @@ function initApp() {
         if (window.renderRarityBoard) window.renderRarityBoard();
       }
     }
-
-    if (window.updateGachaUI) window.updateGachaUI();
   };
 
   // Chama loadCardsCache agora que o Firebase está pronto
@@ -321,55 +319,54 @@ function initApp() {
   // ── Timer de recarga de pacotes ───────────────────────────────
   const THREE_HOURS = 3 * 60 * 60 * 1000;
 
-  setInterval(() => {
-    const ud = window.userData;
-    const user = window.currentUser;
-    if (!user || !ud) return;
+setInterval(() => {
+  const ud = window.userData;
+  const user = window.currentUser;
+  if (!user || !ud) return;
+
+  if ((ud.pullsAvailable || 0) < 5 && ud.lastPullTimestamp) {
+    const now = Date.now();
+    const timePassed = now - ud.lastPullTimestamp;
+    const pullsEarned = Math.floor(timePassed / THREE_HOURS);
+
+    if (pullsEarned > 0) {
+      const newPulls = Math.min(5, (ud.pullsAvailable || 0) + pullsEarned);
+      let newTimestamp = ud.lastPullTimestamp + (pullsEarned * THREE_HOURS);
+      if (newPulls === 5) newTimestamp = null;
+
+      if (newPulls !== ud.pullsAvailable) {
+        updateDoc(doc(db, "users", user.uid), {
+          pullsAvailable: newPulls,
+          lastPullTimestamp: newTimestamp
+        }).catch(() => {});
+        ud.pullsAvailable = newPulls;
+        ud.lastPullTimestamp = newTimestamp;
+        // Só chama updateGachaUI quando realmente mudou
+        if (window.updateGachaUI) window.updateGachaUI();
+      }
+    }
 
     if ((ud.pullsAvailable || 0) < 5 && ud.lastPullTimestamp) {
-      const now = Date.now();
-      const timePassed = now - ud.lastPullTimestamp;
-
-const pullsEarned = Math.floor(timePassed / THREE_HOURS);
-
-if (pullsEarned > 0) {
-  const newPulls = Math.min(5, (ud.pullsAvailable || 0) + pullsEarned);
-  let newTimestamp = ud.lastPullTimestamp + (pullsEarned * THREE_HOURS);
-  if (newPulls === 5) newTimestamp = null;
-
-  // 🔒 só atualiza se mudou mesmo
-  if (newPulls !== ud.pullsAvailable) {
-    updateDoc(doc(db, "users", user.uid), {
-      pullsAvailable: newPulls,
-      lastPullTimestamp: newTimestamp
-    }).catch(() => {});
-
-    ud.pullsAvailable = newPulls;
-    ud.lastPullTimestamp = newTimestamp;
-  }
-}
-
-      if ((ud.pullsAvailable || 0) < 5 && ud.lastPullTimestamp) {
-        const timerContainer = document.getElementById('pull-timer-container');
-        const timerText = document.getElementById('pull-timer');
-        const largeTimer = document.getElementById('large-pull-timer');
-
-        if (timerContainer) timerContainer.classList.remove('hidden');
-
-        const timeLeft = THREE_HOURS - ((Date.now() - ud.lastPullTimestamp) % THREE_HOURS);
-        const h = Math.floor(timeLeft / (1000 * 60 * 60)).toString().padStart(2, '0');
-        const m = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
-        const s = Math.floor((timeLeft % (1000 * 60)) / 1000).toString().padStart(2, '0');
-        const timeString = `${h}h ${m}m ${s}s`;
-
-        if (timerText) timerText.innerText = timeString;
-        if (largeTimer) largeTimer.innerText = timeString;
-      }
-    } else {
       const timerContainer = document.getElementById('pull-timer-container');
-      if (timerContainer) timerContainer.classList.add('hidden');
+      const timerText = document.getElementById('pull-timer');
+      const largeTimer = document.getElementById('large-pull-timer');
+
+      if (timerContainer) timerContainer.classList.remove('hidden');
+
+      const timeLeft = THREE_HOURS - ((Date.now() - ud.lastPullTimestamp) % THREE_HOURS);
+      const h = Math.floor(timeLeft / (1000 * 60 * 60)).toString().padStart(2, '0');
+      const m = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+      const s = Math.floor((timeLeft % (1000 * 60)) / 1000).toString().padStart(2, '0');
+      const timeString = `${h}h ${m}m ${s}s`;
+
+      if (timerText) timerText.innerText = timeString;
+      if (largeTimer) largeTimer.innerText = timeString;
     }
-  }, 1000);
+  } else {
+    const timerContainer = document.getElementById('pull-timer-container');
+    if (timerContainer) timerContainer.classList.add('hidden');
+  }
+}, 1000);
 
   // ── Resetar área de pacotes após abrir ────────────────────────
   window.resetPackArea = () => {
