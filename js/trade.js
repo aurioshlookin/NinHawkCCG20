@@ -1,5 +1,8 @@
 // ============================================================
 // trade.js — Sistema de Trocas
+// FIX: corrigido bug "window.window.currentOfferQty" que causava
+// offerQuantity/requestQuantity undefined ao salvar, fazendo
+// "Minhas Ofertas" e "Mural Global" sempre mostrarem 1x1.
 // ============================================================
 
 const TRADE_RATIOS = {
@@ -141,8 +144,9 @@ window.updateTradeRatio = () => {
   }
 };
 
-// Variáveis de estado
-window.window.currentOfferQty = 1;
+// FIX: era "window.window.currentOfferQty" — duplo window causava
+// a variável nunca ser definida, salvando undefined no Firestore.
+window.currentOfferQty = 1;
 window.currentReqQty   = 1;
 window.allOpenTrades   = [];
 
@@ -164,15 +168,19 @@ if (tradeFormEl) {
 
     if (btn) { btn.disabled = true; btn.innerText = "Publicando..."; }
 
+    // Captura os valores atuais antes da transação
+    const offerQtyToSave = window.currentOfferQty || 1;
+    const reqQtyToSave   = window.currentReqQty   || 1;
+
     try {
       await runTransaction(db, async (transaction) => {
         const userRef = doc(db, "users", window.currentUser.uid);
         const userSnap = await transaction.get(userRef);
         let transInv = userSnap.data().inventory || {};
 
-        if ((transInv[offerId] || 0) <= window.currentOfferQty) throw "Cartas insuficientes no inventário.";
+        if ((transInv[offerId] || 0) <= offerQtyToSave) throw "Cartas insuficientes no inventário.";
 
-        transInv[offerId] -= window.currentOfferQty;
+        transInv[offerId] -= offerQtyToSave;
         transaction.update(userRef, { inventory: transInv });
 
         const newTradeRef = doc(collection(db, "trades"));
@@ -181,9 +189,9 @@ if (tradeFormEl) {
           fromUserName: window.currentUser.displayName,
           fromUserAvatar: window.currentUser.photoURL || '',
           offerCardId: offerId,
-          offerQuantity: window.currentOfferQty,
+          offerQuantity: offerQtyToSave,
           requestTier: reqTier,
-          requestQuantity: window.currentReqQty,
+          requestQuantity: reqQtyToSave,
           status: 'open',
           timestamp: serverTimestamp()
         });
@@ -220,14 +228,18 @@ window.renderTradeBoard = () => {
     if (!offerCard) return;
     const isMyTrade = trade.fromUserId === window.currentUser.uid;
 
+    // FIX: garante fallback para 1 caso o campo venha undefined de trocas antigas
+    const offerQty   = trade.offerQuantity   || 1;
+    const requestQty = trade.requestQuantity || 1;
+
     if (isMyTrade) {
       myTradesCount++;
       myTradesList.innerHTML += `
         <div class="bg-gray-900 p-3 rounded border border-gray-600 flex justify-between items-center text-sm">
           <div class="flex items-center gap-2">
-            <span class="text-red-400 font-bold">- ${trade.offerQuantity || 1}x ${offerCard.name} [${offerCard.tier}]</span>
+            <span class="text-red-400 font-bold">- ${offerQty}x ${offerCard.name} [${offerCard.tier}]</span>
             <span class="text-gray-500">por</span>
-            <span class="text-green-400 font-bold">+ ${trade.requestQuantity || 1}x Rank ${trade.requestTier}</span>
+            <span class="text-green-400 font-bold">+ ${requestQty}x Rank ${trade.requestTier}</span>
           </div>
           <button onclick="window.cancelTrade('${trade.id}')" class="text-gray-400 hover:text-red-500 transition" title="Cancelar Oferta">✖</button>
         </div>
@@ -238,9 +250,9 @@ window.renderTradeBoard = () => {
     const myInv = window.userData.inventory || {};
     const alreadyHaveOffered = (myInv[offerCard.id] || 0) > 0;
 
-    const ratioLabel = (trade.requestQuantity || 1) === 1
+    const ratioLabel = requestQty === 1
       ? `1x [${trade.requestTier}]`
-      : `${trade.requestQuantity}x [${trade.requestTier}] diferentes`;
+      : `${requestQty}x [${trade.requestTier}] diferentes`;
 
     let actionBtnHTML = '';
     if (isMyTrade) {
@@ -248,7 +260,7 @@ window.renderTradeBoard = () => {
     } else if (alreadyHaveOffered) {
       actionBtnHTML = `<button disabled class="w-full py-2 font-bold text-[11px] uppercase transition bg-gray-700 text-gray-400 cursor-not-allowed">Já tem esta carta</button>`;
     } else {
-      actionBtnHTML = `<button onclick="window.openAcceptTradeModal('${trade.id}', '${trade.fromUserId}', '${offerCard.id}', '${trade.requestTier}', ${trade.requestQuantity || 1})" class="w-full py-2 font-bold text-sm transition bg-green-600 hover:bg-green-500 text-white shadow-[0_0_10px_rgba(34,197,94,0.3)]">Aceitar Troca</button>`;
+      actionBtnHTML = `<button onclick="window.openAcceptTradeModal('${trade.id}', '${trade.fromUserId}', '${offerCard.id}', '${trade.requestTier}', ${requestQty})" class="w-full py-2 font-bold text-sm transition bg-green-600 hover:bg-green-500 text-white shadow-[0_0_10px_rgba(34,197,94,0.3)]">Aceitar Troca</button>`;
     }
 
     globalGrid.innerHTML += `
@@ -260,7 +272,7 @@ window.renderTradeBoard = () => {
         <div class="p-3 flex justify-between items-center gap-2 flex-grow">
           <div class="w-16 h-20 bg-gray-800 rounded border border-gray-600 flex flex-col justify-center items-center relative overflow-hidden" title="${offerCard.name}">
             <span class="absolute top-0 left-0 bg-gray-900 text-white text-[8px] px-1 font-bold z-10 border-b border-r border-gray-500">R.${offerCard.tier}</span>
-            <span class="absolute bottom-0 right-0 bg-red-600 text-white text-[10px] px-1 font-bold rounded-tl z-10">${trade.offerQuantity || 1}x</span>
+            <span class="absolute bottom-0 right-0 bg-red-600 text-white text-[10px] px-1 font-bold rounded-tl z-10">${offerQty}x</span>
             <img src="${window.GITHUB_RAW_URL + offerCard.img}" class="w-full h-full object-cover">
           </div>
           <div class="text-center">
@@ -270,7 +282,7 @@ window.renderTradeBoard = () => {
           <div class="w-16 h-20 bg-gray-800 rounded border-2 border-green-500/50 border-dashed flex flex-col justify-center items-center relative overflow-hidden">
             <span class="text-xl font-bold text-green-500/50">?</span>
             <span class="absolute top-0 left-0 bg-gray-900 text-green-400 text-[8px] px-1 font-bold border-b border-r border-green-500/50">R.${trade.requestTier}</span>
-            <span class="absolute bottom-0 right-0 bg-green-600 text-white text-[10px] px-1 font-bold rounded-tl z-10">${trade.requestQuantity || 1}x</span>
+            <span class="absolute bottom-0 right-0 bg-green-600 text-white text-[10px] px-1 font-bold rounded-tl z-10">${requestQty}x</span>
           </div>
         </div>
         ${actionBtnHTML}
