@@ -13,6 +13,8 @@
 // corretamente, desbloqueando claims subsequentes sem F5.
 // ============================================================
 
+let lastPullsAvailable = null;
+
     const CLOUD_FUNCTIONS_URL = window.CLOUD_FUNCTIONS_URL || 'https://us-central1-nincardcollectionbr.cloudfunctions.net';
 
     window.promptOpenPack = (type) => {
@@ -403,6 +405,9 @@
     };
 
     window.updateGachaUI = () => {
+  if (userData.pullsAvailable === lastPullsAvailable) return;
+  lastPullsAvailable = userData.pullsAvailable;
+            
       const pullsCountEl = document.getElementById('pulls-count');
       if (pullsCountEl) pullsCountEl.innerText = userData.pullsAvailable || 0;
       
