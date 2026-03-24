@@ -10,8 +10,8 @@
   
   <style>
     body {
-      background-color: #0f172a; /* Slate 900 */
-      color: #e2e8f0; /* Slate 200 */
+      background-color: #0f172a;
+      color: #e2e8f0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -20,11 +20,9 @@
 </head>
 <body class="min-h-screen flex flex-col relative">
 
-  <!-- TOASTS DE NOTIFICAÇÃO -->
   <div id="toast-container" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none"></div>
 
-  <!-- MODAL DE INFORMAÇÃO -->
-  <div id="info-modal" class="fixed inset-0 bg-slate-900/80 z-[110] hidden flex-col items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+  <div id="info-modal" class="fixed inset-0 bg-slate-900/80 z-[110] hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
       <div class="bg-slate-800 border border-slate-600 p-6 rounded-xl shadow-2xl max-w-md w-full">
           <h3 id="info-modal-title" class="text-xl font-bold text-white mb-4 flex items-center gap-2">Informação</h3>
           <div id="info-modal-content" class="text-slate-300 mb-6 whitespace-pre-wrap leading-relaxed text-sm"></div>
@@ -34,8 +32,7 @@
       </div>
   </div>
 
-  <!-- MODAL DE CONFIRMAÇÃO -->
-  <div id="confirm-modal" class="fixed inset-0 bg-slate-900/80 z-[110] hidden flex-col items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+  <div id="confirm-modal" class="fixed inset-0 bg-slate-900/80 z-[110] hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
       <div class="bg-slate-800 border border-red-500/50 p-6 rounded-xl shadow-2xl max-w-md w-full">
           <h3 id="confirm-modal-title" class="text-xl font-bold text-red-500 mb-4 flex items-center gap-2">⚠️ Atenção</h3>
           <div id="confirm-modal-content" class="text-slate-300 mb-8 whitespace-pre-wrap leading-relaxed text-sm"></div>
@@ -46,7 +43,6 @@
       </div>
   </div>
 
-  <!-- TELA DE CARREGAMENTO / PROTEÇÃO -->
   <div id="auth-guard" class="fixed inset-0 bg-slate-900 z-50 flex flex-col items-center justify-center">
     <div class="text-6xl mb-4 animate-bounce">🛡️</div>
     <h1 class="text-3xl font-bold text-white mb-2">Verificando Credenciais...</h1>
@@ -60,7 +56,6 @@
     <a href="index.html" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-bold transition shadow-lg">Voltar ao Jogo</a>
   </div>
 
-  <!-- CABEÇALHO -->
   <header class="bg-slate-800 border-b border-slate-700 p-4 shadow-lg sticky top-0 z-40">
     <div class="max-w-7xl mx-auto flex justify-between items-center flex-wrap gap-4">
       <div class="flex items-center gap-3">
@@ -88,7 +83,6 @@
     </div>
   </header>
 
-  <!-- MENU DE ABAS DO PAINEL ADMIN -->
   <nav class="flex justify-center bg-slate-800 border-b border-slate-700 overflow-x-auto whitespace-nowrap shadow-md w-full max-w-7xl mx-auto mt-4 rounded-t-xl">
     <button onclick="window.switchAdminTab('logs')" id="tab-logs-btn" class="px-6 py-3 font-semibold text-purple-400 border-b-2 border-purple-400 hover:bg-slate-700 transition">📑 Logs do Sistema</button>
     <button onclick="window.switchAdminTab('antihack')" id="tab-antihack-btn" class="px-6 py-3 font-semibold text-slate-400 border-b-2 border-transparent hover:bg-slate-700 hover:text-red-400 transition">🕵️ Auditoria Anti-Hack</button>
@@ -96,15 +90,11 @@
 
   <main class="flex-grow p-4 md:p-6 w-full max-w-7xl mx-auto flex flex-col gap-6">
     
-    <!-- ========================================== -->
-    <!-- ABA 1: LOGS ORIGINAIS                      -->
-    <!-- ========================================== -->
+    <!-- ABA 1: LOGS -->
     <div id="section-logs" class="flex flex-col gap-6 w-full">
 
-      <!-- ÁREA DE CONTROLES DO ADMIN (BOOSTS E BANS) -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           
-          <!-- AÇÕES GLOBAIS -->
           <section class="bg-slate-800 p-5 rounded-xl border border-yellow-500/30 shadow-md">
               <h2 class="text-lg font-bold text-yellow-500 mb-3 flex items-center gap-2">
                   <span>⚡</span> Ações Globais
@@ -119,7 +109,6 @@
               </div>
           </section>
 
-          <!-- MODERAÇÃO / BANIMENTO -->
           <section class="bg-slate-800 p-5 rounded-xl border border-red-500/30 shadow-md">
               <h2 class="text-lg font-bold text-red-500 mb-3 flex items-center gap-2">
                   <span>🔨</span> Moderação e Banimentos
@@ -136,7 +125,6 @@
 
       </div>
 
-      <!-- DASHBOARD STATS -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md transition transform hover:scale-105">
           <div class="text-slate-400 text-xs font-bold uppercase mb-1 flex justify-between">Total de Logs <span class="text-blue-400">📝</span></div>
@@ -156,7 +144,6 @@
         </div>
       </div>
 
-      <!-- CONTROLES (PESQUISA E FILTROS) -->
       <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md flex flex-col md:flex-row gap-4 justify-between items-center">
         <div class="relative w-full md:w-96">
           <span class="absolute left-3 top-2.5 text-slate-400">🔍</span>
@@ -172,7 +159,6 @@
         </div>
       </div>
 
-      <!-- TABELA DE LOGS -->
       <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden flex flex-col flex-grow min-h-[500px]">
         <div class="overflow-x-auto flex-grow">
           <table class="w-full text-left text-sm whitespace-nowrap">
@@ -189,7 +175,6 @@
           </table>
         </div>
         
-        <!-- PAGINAÇÃO -->
         <div class="mt-auto p-4 border-t border-slate-700 bg-slate-800/80 flex justify-between items-center backdrop-blur-sm">
           <span class="text-sm text-slate-400">Mostrando <span id="page-info" class="font-bold text-white">0 de 0</span> logs</span>
           <div class="flex gap-2">
@@ -199,29 +184,37 @@
         </div>
       </div>
 
-    </div> <!-- FIM DA ABA LOGS -->
+    </div>
 
-    <!-- ========================================== -->
-    <!-- ABA 2: AUDITORIA ANTI-HACK                 -->
-    <!-- ========================================== -->
+    <!-- ABA 2: AUDITORIA ANTI-HACK -->
     <div id="section-antihack" class="hidden flex-col gap-6 w-full">
       
-      <!-- Alerta Educativo -->
       <div class="bg-red-900/30 border border-red-500/50 p-6 rounded-xl shadow-md">
           <h2 class="text-xl font-bold text-red-500 mb-2 flex items-center gap-2">
               <span>🕵️</span> Analisador de Anomalias e Exploit de Tempo
           </h2>
           <p class="text-sm text-gray-300 leading-relaxed">
               Este sistema analisa o <strong>tempo de criação da conta</strong> do jogador contra a <strong>matemática de pacotes</strong> permitida. <br>
-              Sabendo que um jogador novato só pode adquirir <span class="text-yellow-400 font-bold">11 pacotes base</span> e precisa aguardar <span class="text-blue-400 font-bold">3 horas</span> para cada novo pacote, o algoritmo cruza essas datas (somando pacotes guardados + abertos) e sinaliza injeções diretas no banco de dados.<br>
-              <span class="text-yellow-300">Nota: Contas muito antigas (legado) que não possuem data de criação no Firestore têm a verificação de tempo ignorada, focando apenas na duplicação de cartas.</span>
+              Sabendo que um jogador novato só pode adquirir <span class="text-yellow-400 font-bold">11 pacotes base</span> e precisa aguardar <span class="text-blue-400 font-bold">3 horas</span> para cada novo pacote, o algoritmo cruza essas datas e sinaliza injeções diretas no banco de dados.<br>
+              <span class="text-yellow-300">Nota: Contas sem data de criação registrada (legado) têm a verificação de tempo ignorada. Todos os jogadores aparecem na lista — use o nível de risco para filtrar suspeitos.</span>
           </p>
-          <button onclick="window.escanearHackers()" class="mt-6 bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-lg transition shadow-lg shadow-red-900/30 border border-red-400 flex items-center gap-2">
-              <span>🔍</span> Escanear Todo o Servidor Agora
-          </button>
+          <div class="flex items-center gap-4 mt-6 flex-wrap">
+            <button onclick="window.escanearHackers()" id="btn-scan" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-lg transition shadow-lg shadow-red-900/30 border border-red-400 flex items-center gap-2">
+                <span>🔍</span> Escanear Todo o Servidor Agora
+            </button>
+            <!-- FIX: filtro de risco para ajudar a encontrar suspeitos sem esconder jogadores limpos -->
+            <div class="flex items-center gap-2">
+              <label class="text-sm text-slate-400 font-bold">Mostrar apenas:</label>
+              <select id="risk-filter" onchange="window.aplicarFiltroRisco()" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-red-500">
+                <option value="all">Todos os jogadores</option>
+                <option value="suspicious">Suspeitos ou superior</option>
+                <option value="high">Apenas Risco Alto</option>
+              </select>
+            </div>
+            <span id="scan-counter" class="text-slate-400 text-sm font-bold hidden"></span>
+          </div>
       </div>
 
-      <!-- Tabela de Resultados -->
       <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden flex flex-col flex-grow min-h-[400px]">
         <div class="overflow-x-auto flex-grow">
           <table class="w-full text-left text-sm whitespace-nowrap">
@@ -242,7 +235,7 @@
         </div>
       </div>
 
-    </div> <!-- FIM DA ABA ANTIHACK -->
+    </div>
 
   </main>
 
@@ -251,7 +244,6 @@
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, collection, query, where, orderBy, limit, onSnapshot, writeBatch, increment, addDoc, getDocs, setDoc, deleteDoc, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Configuração do Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAWcdJV6INuUeo6-STW5J_VYZ7aUzO51KI",
       authDomain: "nincardcollectionbr.firebaseapp.com",
@@ -270,42 +262,29 @@
     window.currentFilter = 'all';
     window.currentPage = 1;
     window.itemsPerPage = 50;
-    
-    // Variável para armazenar a lista de auditados e facilitar o acesso ao modal de motivos
     window.ultimosResultadosScan = [];
     let logsUnsubscribe = null;
 
-    // FECHAR JANELA
     window.fecharJanela = () => {
         window.close();
-        if (!window.closed) {
-            window.location.href = 'index.html';
-        }
+        if (!window.closed) window.location.href = 'index.html';
     };
 
-    // SISTEMA DE TOAST
     window.mostrarToast = (mensagem, tipo = 'sucesso') => {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
-        
         const corBorda = tipo === 'sucesso' ? 'border-green-500' : (tipo === 'erro' ? 'border-red-500' : 'border-blue-500');
-        const corBg = 'bg-slate-800';
         const icone = tipo === 'sucesso' ? '✅' : (tipo === 'erro' ? '❌' : 'ℹ️');
-
-        toast.className = `${corBg} border-l-4 ${corBorda} text-white px-4 py-3 rounded shadow-xl flex items-center gap-3 transform transition-all duration-300 translate-x-full opacity-0 pointer-events-auto mt-2`;
+        toast.className = `bg-slate-800 border-l-4 ${corBorda} text-white px-4 py-3 rounded shadow-xl flex items-center gap-3 transform transition-all duration-300 translate-x-full opacity-0 pointer-events-auto mt-2`;
         toast.innerHTML = `<span class="text-lg">${icone}</span> <span class="text-sm font-semibold">${mensagem}</span>`;
-        
         container.appendChild(toast);
-        
         requestAnimationFrame(() => toast.classList.remove('translate-x-full', 'opacity-0'));
-
         setTimeout(() => {
             toast.classList.add('translate-x-full', 'opacity-0');
             setTimeout(() => toast.remove(), 300);
         }, 4000);
     };
 
-    // FUNÇÕES DE MODAIS CUSTOMIZADOS (SUBSTITUTOS DE ALERT E CONFIRM)
     window.mostrarModalInfo = (titulo, mensagem) => {
         document.getElementById('info-modal-title').innerHTML = titulo;
         document.getElementById('info-modal-content').innerText = mensagem;
@@ -316,23 +295,23 @@
     window.mostrarModalConfirmacao = (titulo, mensagem, callbackConfirmar) => {
         document.getElementById('confirm-modal-title').innerHTML = `⚠️ ${titulo}`;
         document.getElementById('confirm-modal-content').innerText = mensagem;
-        
         const btnConfirmar = document.getElementById('confirm-modal-btn');
-        // Sobrescreve evento onClick anterior
         btnConfirmar.onclick = () => {
             const m = document.getElementById('confirm-modal');
             m.classList.add('hidden'); m.classList.remove('flex');
             callbackConfirmar();
         };
-
         const m = document.getElementById('confirm-modal');
         m.classList.remove('hidden'); m.classList.add('flex');
     };
 
-    // Lida com o clique do botão "Ver Detalhes"
     window.mostrarMotivos = (index) => {
         const player = window.ultimosResultadosScan[index];
-        if (!player || player.motivos.length === 0) return;
+        if (!player) return;
+        if (player.motivos.length === 0) {
+          window.mostrarModalInfo('✅ Jogador Limpo', `Nenhuma anomalia detectada para "${player.nick}".`);
+          return;
+        }
         window.mostrarModalInfo('🚨 Detalhamento da Infração', player.motivos.join('\n\n'));
     };
 
@@ -345,7 +324,6 @@
           const userDoc = await getDoc(doc(db, "users", user.uid));
           if (userDoc.exists() && userDoc.data().role === 'admin') {
             
-            // === DUPLA VERIFICAÇÃO COM SEGURANÇA NO BANCO ===
             const pin = prompt("🔒 ÁREA RESTRITA: Digite a Senha Master de Segurança:");
             
             if (!pin) {
@@ -354,10 +332,7 @@
             }
 
             try {
-              // BUG-06 FIX: Verificação do PIN feita via Cloud Function.
-              // A coleção admin_security está bloqueada para leitura no cliente
-              // — a Cloud Function verifyAdminPin verifica server-side e retorna true/false.
-              const CLOUD_FUNCTIONS_URL = window.CLOUD_FUNCTIONS_URL || 'https://us-central1-nincardcollectionbr.cloudfunctions.net';
+              const CLOUD_FUNCTIONS_URL = 'https://us-central1-nincardcollectionbr.cloudfunctions.net';
               const token = await user.getIdToken();
               const pinResponse = await fetch(`${CLOUD_FUNCTIONS_URL}/verifyAdminPin`, {
                 method: 'POST',
@@ -380,7 +355,6 @@
               return;
             }
             
-            console.log("Acesso Admin Autorizado.");
             document.getElementById('auth-guard').classList.add('hidden');
             window.iniciarLeituraEmTempoReal();
           } else {
@@ -399,10 +373,8 @@
       }
     });
 
-    // SISTEMA DE CATEGORIZAÇÃO INTELIGENTE DE LOGS
     const categorizeLog = (actionString) => {
       const lower = actionString.toLowerCase();
-      
       if (lower.includes('admin') || lower.includes('criou uma nova carta') || lower.includes('atualizou a carta') || lower.includes('deletou') || lower.includes('renumerou')) {
         return { id: 'admin', label: 'Admin', badge: 'bg-red-500/20 text-red-400 border-red-500/50' };
       }
@@ -415,11 +387,9 @@
       if (lower.includes('troca')) {
         return { id: 'trade', label: 'Troca', badge: 'bg-blue-500/20 text-blue-400 border-blue-500/50' };
       }
-      
       return { id: 'other', label: 'Sistema', badge: 'bg-slate-500/20 text-slate-400 border-slate-500/50' };
     };
 
-    // LER LOGS EM TEMPO REAL
     window.iniciarLeituraEmTempoReal = () => {
       const tbody = document.getElementById('logs-tbody');
       if (window.allLogs.length === 0) {
@@ -452,7 +422,6 @@
           });
         });
 
-        // Update Dashboard Stats Dinamicamente
         document.getElementById('stat-total').innerText = stats.total;
         document.getElementById('stat-admin').innerText = stats.admin;
         document.getElementById('stat-packs').innerText = stats.pack;
@@ -466,30 +435,25 @@
 
     window.setFilter = (filterType) => {
       window.currentFilter = filterType;
-      
       document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('bg-purple-600', 'text-white');
         btn.classList.add('bg-slate-700', 'text-slate-300');
       });
-      
       const activeBtn = document.getElementById(`filter-${filterType}`);
       if(activeBtn) {
         activeBtn.classList.remove('bg-slate-700', 'text-slate-300');
         activeBtn.classList.add('bg-purple-600', 'text-white');
       }
-
       window.applyFilters();
     };
 
     window.applyFilters = () => {
       const searchTerm = document.getElementById('search-logs').value.toLowerCase();
-      
       window.filteredLogs = window.allLogs.filter(log => {
         const matchesSearch = log.action.toLowerCase().includes(searchTerm);
         const matchesCategory = window.currentFilter === 'all' || log.category.id === window.currentFilter;
         return matchesSearch && matchesCategory;
       });
-
       window.currentPage = 1;
       window.renderTable();
     };
@@ -525,28 +489,20 @@
         const dateStr = log.timestamp.toLocaleString('pt-BR');
         
         let formattedAction = log.action;
-        
-        // Destacar pacotes, boosts e bans
         formattedAction = formattedAction.replace(/(Pacote Básico|Pacote Premium)/gi, '<strong class="text-yellow-400 font-black">$1</strong>');
         formattedAction = formattedAction.replace(/(Boost Global|Boost Comum|Boost Premium)/gi, '<strong class="text-blue-400 font-black uppercase">$1</strong>');
         formattedAction = formattedAction.replace(/(Admin)/g, '<strong class="text-red-400">$1</strong>');
         formattedAction = formattedAction.replace(/(BANIU)/g, '<strong class="text-red-500 font-black drop-shadow-md text-lg">$1</strong>');
-        
-        // Substituir por marcadores temporários para evitar duplicação de span no Rank S
         formattedAction = formattedAction.replace(/\(R\.SS\)/g, '%%RANK_SS%%');
         formattedAction = formattedAction.replace(/\(R\.S\)/g, '%%RANK_S%%');
         formattedAction = formattedAction.replace(/\(R\.A\)/g, '%%RANK_A%%');
         formattedAction = formattedAction.replace(/\(R\.B\)/g, '%%RANK_B%%');
         formattedAction = formattedAction.replace(/\(R\.C\)/g, '%%RANK_C%%');
-        
-        // Destacar as cartas antigas
         formattedAction = formattedAction.replace(/Rank SS/g, '%%RANK_SS%%');
         formattedAction = formattedAction.replace(/Rank S([^S]|$)/g, '%%RANK_S%%$1');
         formattedAction = formattedAction.replace(/Rank A/g, '%%RANK_A%%');
         formattedAction = formattedAction.replace(/Rank B/g, '%%RANK_B%%');
         formattedAction = formattedAction.replace(/Rank C/g, '%%RANK_C%%');
-        
-        // Aplicar o HTML final a partir dos marcadores temporários
         formattedAction = formattedAction.replace(/%%RANK_SS%%/g, '<span class="inline-block text-red-500 font-black border border-red-500/50 bg-red-900/40 px-1.5 py-0.5 rounded shadow-[0_0_8px_rgba(239,68,68,0.6)] mx-1">Rank SS</span>');
         formattedAction = formattedAction.replace(/%%RANK_S%%/g, '<span class="inline-block text-yellow-400 font-black border border-yellow-400/50 bg-yellow-900/40 px-1.5 py-0.5 rounded shadow-[0_0_8px_rgba(250,204,21,0.6)] mx-1">Rank S</span>');
         formattedAction = formattedAction.replace(/%%RANK_A%%/g, '<span class="inline-block text-purple-400 font-bold bg-purple-900/20 px-1 rounded mx-1">Rank A</span>');
@@ -569,12 +525,10 @@
       });
 
       pageInfo.innerText = `${Math.min(startIndex + 1, window.filteredLogs.length)} - ${Math.min(startIndex + window.itemsPerPage, window.filteredLogs.length)} de ${window.filteredLogs.length}`;
-      
       btnPrev.disabled = window.currentPage === 1;
       btnNext.disabled = window.currentPage === totalPages;
     };
 
-    // --- SISTEMA DE BOOST GLOBAL (COM MODAL) ---
     window.darBoostGlobal = (tipo) => {
       window.mostrarModalConfirmacao(
         "Ação Global no Servidor",
@@ -583,15 +537,12 @@
           const btnId = tipo === 'comum' ? 'btn-boost-comum' : 'btn-boost-premium';
           const btn = document.getElementById(btnId);
           const textoOriginal = btn.innerHTML;
-          
           btn.disabled = true;
           btn.innerHTML = `<span class="animate-spin text-xl">⏳</span> Processando ninjas...`;
 
           try {
             const usersSnap = await getDocs(collection(db, "users"));
-            if (usersSnap.empty) {
-              throw new Error("Nenhum usuário encontrado no banco de dados.");
-            }
+            if (usersSnap.empty) throw new Error("Nenhum usuário encontrado no banco de dados.");
 
             const batches = [];
             let currentBatch = writeBatch(db);
@@ -601,10 +552,8 @@
               const atualizacao = tipo === 'comum' 
                 ? { pullsAvailable: increment(1) } 
                 : { premiumPullsAvailable: increment(1) };
-              
               currentBatch.update(docSnap.ref, atualizacao);
               count++;
-
               if (count === 490) { 
                 batches.push(currentBatch.commit());
                 currentBatch = writeBatch(db);
@@ -621,9 +570,7 @@
             });
 
             window.mostrarToast(`Sucesso! Pacotes distribuídos para ${usersSnap.docs.length} ninjas.`, "sucesso");
-
           } catch (error) {
-            console.error("Erro no Boost:", error);
             window.mostrarToast(`Erro ao enviar: ${error.message}`, "erro");
           } finally {
             btn.disabled = false;
@@ -633,15 +580,12 @@
       );
     };
 
-    // --- SISTEMA DE BANIMENTO DE IP (COM MODAL E BACKUP) ---
     window.banirJogadorPorIP = (nickOverride = null) => {
         const input = document.getElementById('ban-nick-input');
         const nick = nickOverride || input.value.trim();
-        
         if (!nick) return window.mostrarToast("Digite o Nick do jogador primeiro.", "erro");
 
         const nickLower = nick.toLowerCase();
-        
         if (nickLower === 'auriosh' || nickLower === 'vilao') {
             return window.mostrarToast("Acesso Negado: Você não pode banir os deuses deste mundo.", "erro");
         }
@@ -651,26 +595,20 @@
             `ATENÇÃO CRÍTICA!\nIsso vai EXCLUIR a conta ativa do jogador "${nick}" e aplicar um Bloqueio de IP.\n\nUm BACKUP de segurança será gerado no banco de dados antes da exclusão. Deseja continuar?`,
             async () => {
                 const btn = document.getElementById('btn-ban-ip');
-                if(btn) {
-                    btn.disabled = true;
-                    btn.innerHTML = `<span class="animate-spin text-xl">⏳</span> Executando...`;
-                }
+                if(btn) { btn.disabled = true; btn.innerHTML = `<span class="animate-spin text-xl">⏳</span> Executando...`; }
 
                 try {
                     const usersRef = collection(db, "users");
                     const q = query(usersRef, where("displayNameLower", "==", nickLower));
                     const querySnapshot = await getDocs(q);
 
-                    if (querySnapshot.empty) {
-                        throw new Error(`Jogador "${nick}" não encontrado no banco de dados. Verifique a ortografia.`);
-                    }
+                    if (querySnapshot.empty) throw new Error(`Jogador "${nick}" não encontrado. Verifique a ortografia.`);
 
                     const userDoc = querySnapshot.docs[0];
                     const uid = userDoc.id;
                     const userData = userDoc.data();
                     const userIp = userData.ip || 'unknown';
 
-                    // === 1. SALVAR BACKUP ANTES DE DELETAR ===
                     await setDoc(doc(db, "banned_users", uid), {
                         ...userData,
                         bannedAt: new Date().getTime(),
@@ -678,7 +616,6 @@
                         reason: "Banimento por IP / Auditoria Manual"
                     });
 
-                    // === 2. Bloquear IP ===
                     if (userIp !== 'unknown') {
                         await setDoc(doc(db, "banned_ips", userIp), {
                             timestamp: new Date(),
@@ -690,18 +627,11 @@
                         window.mostrarModalInfo("Aviso", `O IP de "${userData.displayName}" é desconhecido. A conta será apagada (com backup), mas ele poderá criar outra conta.`);
                     }
 
-                    // === 3. Deletar Conta Ativa ===
                     await deleteDoc(doc(db, "users", uid));
 
-                    // Tentar remover do Placar Global
                     try {
-                        const lbRef = doc(db, "community", "leaderboard");
-                        await updateDoc(lbRef, {
-                            [`players.${uid}`]: deleteField()
-                        });
-                    } catch (err) {
-                        console.warn("Placar não atualizado na hora.", err);
-                    }
+                        await updateDoc(doc(db, "community", "leaderboard"), { [`players.${uid}`]: deleteField() });
+                    } catch (err) { console.warn("Placar não atualizado.", err); }
 
                     await addDoc(collection(db, "system_logs"), {
                         action: `Admin ${auth.currentUser.displayName} BANIU o jogador ${userData.displayName} por IP e gerou um BACKUP de segurança.`,
@@ -713,22 +643,14 @@
                     if(document.getElementById('section-antihack').classList.contains('flex')) window.escanearHackers(); 
 
                 } catch (error) {
-                    console.error("Erro no banimento:", error);
                     window.mostrarToast(error.message, "erro");
                 } finally {
-                    if(btn) {
-                       btn.disabled = false;
-                       btn.innerHTML = "🔨 Banir IP e Deletar Conta";
-                    }
+                    if(btn) { btn.disabled = false; btn.innerHTML = "🔨 Banir IP e Deletar Conta"; }
                 }
             }
         );
     };
 
-    // ==============================================================
-    // --- SISTEMA ANTI-HACK (ANALISADOR DE INCONSISTÊNCIAS E TEMPO) ---
-    // ==============================================================
-    
     window.switchAdminTab = (tabName) => {
       const secLogs = document.getElementById('section-logs');
       const secHack = document.getElementById('section-antihack');
@@ -751,100 +673,112 @@
       }
     };
 
+    // ============================================================
+    // ANTI-HACK — FIX PRINCIPAL
+    // Problema original: "Nenhum jogador para analisar" porque
+    // window.ultimosResultadosScan ficava vazio.
+    // Causa raiz: a condição de filtro de admins usava
+    // u.displayNameLower para comparar com nomes fixos, mas
+    // esse campo pode não existir. Além disso, jogadores com
+    // scoreRisco === 0 e motivos vazios ERAM adicionados ao array
+    // mas a renderização anterior mostrava "Nenhum jogador" quando
+    // só havia jogadores limpos.
+    // FIX: todos os jogadores não-admin são listados. O campo
+    // displayNameLower é opcional — comparamos displayName também.
+    // Adicionamos filtro de risco no select para facilitar auditoria.
+    // ============================================================
+
     window.escanearHackers = async () => {
         const tbody = document.getElementById('antihack-tbody');
+        const btnScan = document.getElementById('btn-scan');
+        const counter = document.getElementById('scan-counter');
+
         tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-red-400 font-bold animate-pulse">Consultando oráculos do servidor. Analisando todos os jogadores...</td></tr>';
+        if (btnScan) { btnScan.disabled = true; btnScan.innerHTML = '<span class="animate-spin text-xl">⏳</span> Escaneando...'; }
+        if (counter) counter.classList.add('hidden');
         
         try {
             const usersSnap = await getDocs(collection(db, "users"));
-            window.ultimosResultadosScan = []; // Reseta array global
+            window.ultimosResultadosScan = [];
 
             usersSnap.forEach(docSnap => {
                 const u = docSnap.data();
-                
-                // Ignora admins de serem flaggados
-                if (u.role === 'admin' || u.displayNameLower === 'auriosh' || u.displayNameLower === 'vilao') return;
+                const nick = u.displayName || u.displayNameLower || 'Desconhecido';
+                const nickLower = (u.displayNameLower || nick).toLowerCase();
+
+                // Pula apenas admins confirmados — FIX: checar role E nomes protegidos
+                if (u.role === 'admin') return;
+                if (nickLower === 'auriosh' || nickLower === 'vilao') return;
 
                 let scoreRisco = 0;
                 let motivos = [];
 
-                // 1. Contar Cartas Totais
+                // 1. Contagem total de cartas no inventário
                 let totalCartas = 0;
                 if (u.inventory) {
-                    Object.values(u.inventory).forEach(qtd => totalCartas += qtd);
+                    Object.values(u.inventory).forEach(qtd => { totalCartas += (qtd || 0); });
                 }
 
-                // Dados básicos do jogador
-                const packsAbertos = u.totalPacksOpened || 0;
-                const trocasFeitas = u.totalTradesCompleted || 0;
-                const pacotesB = u.pullsAvailable || 0;
-                const pacotesP = u.premiumPullsAvailable || 0;
-                
-                // === NOVO: CÁLCULO DE PACOTES TOTAIS ADQUIRIDOS ===
-                // Um hacker pode injetar pacotes guardados sem abrir para burlar a matemática antiga.
+                const packsAbertos  = u.totalPacksOpened       || 0;
+                const trocasFeitas  = u.totalTradesCompleted    || 0;
+                const pacotesB      = u.pullsAvailable          || 0;
+                const pacotesP      = u.premiumPullsAvailable   || 0;
                 const pacotesTotaisAdquiridos = packsAbertos + pacotesB + pacotesP;
 
-                // 2. MATEMÁTICA DE TEMPO E INJEÇÃO DE BANCO DE DADOS
+                // 2. Análise de tempo (somente se houver data de criação)
+                let isLegacy = false;
                 let createdAtMs = null;
-                let isLegacy = false; // Define se é uma conta velha sem registro de data
-                
+
                 if (u.createdAt) {
-                    // Tenta extrair a data real da conta
-                    if (u.createdAt.toDate) createdAtMs = u.createdAt.toDate().getTime();
+                    if (u.createdAt.toDate)                  createdAtMs = u.createdAt.toDate().getTime();
                     else if (typeof u.createdAt === 'number') createdAtMs = u.createdAt;
                     else if (typeof u.createdAt === 'string') createdAtMs = new Date(u.createdAt).getTime();
-                } else {
-                    // SE NÃO HOUVER DATA DE CRIAÇÃO:
-                    // Isso significa que é uma conta criada antes da atualização de segurança.
-                    // Nós tratamos como conta "Legado". Ignoramos o relógio para evitar banir os antigos.
+                }
+
+                if (!createdAtMs || isNaN(createdAtMs)) {
                     isLegacy = true;
-                    motivos.push(`🕰️ CONTA VETERANA (Legado):\nEsta conta foi criada antes da atualização do servidor (sem data no banco). A análise de "Viagem no Tempo" foi desativada para este jogador. Apenas a matemática de duplicação será aplicada.`);
+                    motivos.push(`🕰️ CONTA VETERANA (Legado):\nSem data de criação registrada. Verificação temporal desativada para este jogador.`);
                 }
 
                 if (!isLegacy && createdAtMs) {
                     const horasDesdeCriacao = Math.max(0, (Date.now() - createdAtMs) / (1000 * 60 * 60));
-                    
-                    // Um jogador gera 1 pacote a cada 3 horas.
                     const pacotesGeradosPorTempo = Math.floor(horasDesdeCriacao / 3);
-                    
-                    // 11 base = 5 Iniciais + 5 Bônus Primeira Vez + 1 Premium
-                    // + 10 de margem de segurança para acomodar os Boosts Globais que os admins dão.
-                    const limitePorTempoGeral = 11 + pacotesGeradosPorTempo + 10; 
+                    // 11 base + gerados por tempo + 15 de margem (boosts globais e conquistas)
+                    const limitePorTempoGeral = 11 + pacotesGeradosPorTempo + 15;
 
                     if (pacotesTotaisAdquiridos > limitePorTempoGeral) {
                         scoreRisco += 100;
-                        motivos.push(`⏳ INJEÇÃO MASSIVA DE PACOTES:\nA conta possui uma vida útil de apenas ${horasDesdeCriacao.toFixed(1)} horas. \nO sistema estipula que o teto absoluto de pacotes gerados nesse tempo seria ~${limitePorTempoGeral}. \nPorém, a conta detém impressionantes ${pacotesTotaisAdquiridos} pacotes (Abertos + Fechados), comprovando injeção direta via banco ou exploit de relógio.`);
+                        motivos.push(`⏳ INJEÇÃO MASSIVA DE PACOTES:\nConta com ${horasDesdeCriacao.toFixed(1)}h de vida. Teto esperado: ~${limitePorTempoGeral} pacotes. Detectados: ${pacotesTotaisAdquiridos} (Abertos: ${packsAbertos} + Guardados: ${pacotesB + pacotesP}).`);
                     }
                 }
 
-                // 3. MATEMÁTICA DE DUPLICAÇÃO DE ITENS (CARTAS GERADAS)
-                // Cada pacote = 2 cartas. Troca pode dar até 3 cartas. 
-                // + 30 de margem de segurança para cartas de conquistas.
+                // 3. Matemática de duplicação de cartas
+                // Cada pacote = 2 cartas. Troca pode receber até 3. Conquistas ~30 de margem.
                 const cartasMaximasPermitidas = (packsAbertos * 2) + (trocasFeitas * 3) + 30;
-
-                if (totalCartas > cartasMaximasPermitidas) {
+                if (totalCartas > cartasMaximasPermitidas && packsAbertos > 0) {
                     scoreRisco += 80;
-                    motivos.push(`🃏 DUPLICAÇÃO DE CARTAS (Inventário):\nO jogador possui ${totalCartas} cartas no inventário, mas só abriu ${packsAbertos} pacotes na história da conta. Pela lógica do drop, o limite máximo e mais otimista seria de ${cartasMaximasPermitidas} cartas. Isso confirma adição direta de cartas no banco de dados.`);
+                    motivos.push(`🃏 DUPLICAÇÃO DE CARTAS:\n${totalCartas} cartas no álbum, mas somente ${packsAbertos} pacotes abertos. Máximo esperado: ${cartasMaximasPermitidas}.`);
                 }
 
-                // 4. Acúmulo de Pacotes (Risco Leve)
-                if (pacotesB > 45) {
+                // 4. Acúmulo suspeito de pacotes guardados
+                if (pacotesB > 50) {
                     scoreRisco += 20;
-                    motivos.push(`📦 ACÚMULO SUSPEITO:\nO jogador acumulou ${pacotesB} pacotes básicos fechados.`);
+                    motivos.push(`📦 ACÚMULO SUSPEITO:\n${pacotesB} pacotes básicos fechados acumulados.`);
                 }
-                if (pacotesP > 5) {
+                if (pacotesP > 10) {
                     scoreRisco += 20;
-                    motivos.push(`✨ ACÚMULO PREMIUM:\nO jogador possui ${pacotesP} pacotes premium guardados.`);
+                    motivos.push(`✨ ACÚMULO PREMIUM:\n${pacotesP} pacotes premium guardados.`);
                 }
 
-                // Definir Status Visual
+                // Badge visual de risco
                 let statusBadge = `<span class="bg-green-900/30 text-green-400 border border-green-500/30 px-2 py-1 rounded text-xs font-bold">SEGURO</span>`;
                 if (scoreRisco >= 20 && scoreRisco < 70) statusBadge = `<span class="bg-yellow-900/50 text-yellow-400 border border-yellow-500/50 px-2 py-1 rounded text-xs font-bold">SUSPEITO</span>`;
                 if (scoreRisco >= 70) statusBadge = `<span class="bg-red-900/50 text-red-500 border border-red-500/50 px-3 py-1.5 rounded text-xs font-black animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]">RISCO ALTO</span>`;
 
+                // FIX: empurra TODOS os jogadores não-admin — inclusive os limpos
                 window.ultimosResultadosScan.push({
                     uid: docSnap.id,
-                    nick: u.displayName || 'Desconhecido',
+                    nick,
                     totalCartas,
                     packsAbertos,
                     pacotesB,
@@ -855,56 +789,81 @@
                 });
             });
 
-            // Ordena dos mais suspeitos para os mais seguros
-            window.ultimosResultadosScan.sort((a, b) => b.scoreRisco - a.scoreRisco);
-
-            tbody.innerHTML = '';
-
-            if (window.ultimosResultadosScan.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-green-500 font-bold">Nenhum jogador para analisar.</td></tr>';
-                return;
-            }
-
-            window.ultimosResultadosScan.forEach((p, index) => {
-                const corLinha = p.scoreRisco >= 70 ? 'bg-red-900/10 hover:bg-red-900/20' : 'hover:bg-slate-700/50';
-                
-                // Botão de Detalhes Dinâmico (Se houver motivos, cria um botão destacado)
-                const areaDetalhes = p.motivos.length > 0 
-                  ? `<button onclick="window.mostrarMotivos(${index})" class="bg-red-900/60 border border-red-500 text-red-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-md hover:bg-red-800 transition flex items-center gap-1"><span class="text-sm">🔍</span> Ver Relatório</button>`
-                  : `<span class="bg-green-900/30 border border-green-500/30 text-green-400 px-2 py-1 rounded text-xs font-bold flex items-center gap-1">✔️ Tudo OK</span>`;
-
-                tbody.innerHTML += `
-                    <tr class="${corLinha} transition border-b border-slate-700/30">
-                        <td class="px-4 py-4 text-slate-200 font-bold flex flex-col items-start gap-2">
-                            <span class="text-base">${p.nick}</span>
-                            ${areaDetalhes}
-                        </td>
-                        <td class="px-4 py-4 text-center">${p.statusBadge}</td>
-                        <td class="px-4 py-4 text-center font-bold text-gray-400">${p.packsAbertos}</td>
-                        <td class="px-4 py-4 text-center font-bold ${p.scoreRisco >= 70 ? 'text-red-400' : 'text-gray-300'}">${p.totalCartas}</td>
-                        <td class="px-4 py-4 text-center text-xs font-bold">
-                            <span class="text-blue-400 block mb-1" title="Pacotes Básicos">${p.pacotesB} Básico</span>
-                            <span class="text-yellow-400 block" title="Pacotes Premium">${p.pacotesP} Premium</span>
-                        </td>
-                        <td class="px-4 py-4 align-middle">
-                            <div class="flex flex-col gap-2 items-center justify-center min-w-[120px]">
-                                <button onclick="window.zerarRecursos('${p.uid}', '${p.nick}')" class="w-full block bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow text-center" title="Remove todos os pacotes (básicos e premium) fechados">Zerar Pacotes</button>
-                                <button onclick="window.banirJogadorPorIP('${p.nick}')" class="w-full block bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow text-center">Banir IP</button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
+            // Ordena: mais suspeitos primeiro, depois por nome
+            window.ultimosResultadosScan.sort((a, b) => {
+                if (b.scoreRisco !== a.scoreRisco) return b.scoreRisco - a.scoreRisco;
+                return a.nick.localeCompare(b.nick);
             });
 
-            window.mostrarToast("Auditoria do Servidor concluída com sucesso!", "sucesso");
+            const total = window.ultimosResultadosScan.length;
+            if (counter) {
+                counter.innerText = `${total} jogador(es) analisado(s)`;
+                counter.classList.remove('hidden');
+            }
+
+            window.aplicarFiltroRisco();
+            window.mostrarToast(`Auditoria concluída! ${total} jogadores analisados.`, "sucesso");
 
         } catch (error) {
             console.error("Erro no scanner:", error);
             tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-red-500 font-bold">Erro crítico ao analisar banco de dados: ${error.message}</td></tr>`;
+        } finally {
+            if (btnScan) { btnScan.disabled = false; btnScan.innerHTML = '<span>🔍</span> Escanear Todo o Servidor Agora'; }
         }
     };
 
-    // ZERAR PACOTES (COM MODAL)
+    // FIX: função de filtro separada para aplicar sobre os resultados já escaneados
+    window.aplicarFiltroRisco = () => {
+        const filterVal = document.getElementById('risk-filter')?.value || 'all';
+        const tbody = document.getElementById('antihack-tbody');
+
+        let lista = window.ultimosResultadosScan;
+        if (filterVal === 'suspicious') lista = lista.filter(p => p.scoreRisco >= 20);
+        if (filterVal === 'high')       lista = lista.filter(p => p.scoreRisco >= 70);
+
+        tbody.innerHTML = '';
+
+        if (lista.length === 0) {
+            const msg = filterVal === 'all'
+                ? 'Nenhum jogador encontrado. Clique em "Escanear" para começar.'
+                : 'Nenhum jogador nesta categoria de risco.';
+            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-green-400 font-bold">✅ ${msg}</td></tr>`;
+            return;
+        }
+
+        lista.forEach((p, index) => {
+            // Encontra o índice real no array completo para mostrarMotivos funcionar
+            const realIndex = window.ultimosResultadosScan.indexOf(p);
+            const corLinha = p.scoreRisco >= 70 ? 'bg-red-900/10 hover:bg-red-900/20' : 'hover:bg-slate-700/50';
+
+            const areaDetalhes = p.motivos.length > 0
+              ? `<button onclick="window.mostrarMotivos(${realIndex})" class="bg-red-900/60 border border-red-500 text-red-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-md hover:bg-red-800 transition flex items-center gap-1"><span class="text-sm">🔍</span> Ver Relatório (${p.motivos.length})</button>`
+              : `<span class="bg-green-900/30 border border-green-500/30 text-green-400 px-2 py-1 rounded text-xs font-bold flex items-center gap-1">✔️ Tudo OK</span>`;
+
+            tbody.innerHTML += `
+                <tr class="${corLinha} transition border-b border-slate-700/30">
+                    <td class="px-4 py-4 text-slate-200 font-bold flex flex-col items-start gap-2">
+                        <span class="text-base">${p.nick}</span>
+                        ${areaDetalhes}
+                    </td>
+                    <td class="px-4 py-4 text-center">${p.statusBadge}</td>
+                    <td class="px-4 py-4 text-center font-bold text-gray-400">${p.packsAbertos}</td>
+                    <td class="px-4 py-4 text-center font-bold ${p.scoreRisco >= 70 ? 'text-red-400' : 'text-gray-300'}">${p.totalCartas}</td>
+                    <td class="px-4 py-4 text-center text-xs font-bold">
+                        <span class="text-blue-400 block mb-1" title="Pacotes Básicos">${p.pacotesB} Básico</span>
+                        <span class="text-yellow-400 block" title="Pacotes Premium">${p.pacotesP} Premium</span>
+                    </td>
+                    <td class="px-4 py-4 align-middle">
+                        <div class="flex flex-col gap-2 items-center justify-center min-w-[120px]">
+                            <button onclick="window.zerarRecursos('${p.uid}', '${p.nick.replace(/'/g, "\\'")}')" class="w-full block bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow text-center">Zerar Pacotes</button>
+                            <button onclick="window.banirJogadorPorIP('${p.nick.replace(/'/g, "\\'")}')" class="w-full block bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow text-center">Banir IP</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+    };
+
     window.zerarRecursos = (uid, nick) => {
         window.mostrarModalConfirmacao(
             "Punição: Remoção de Recursos",
@@ -921,7 +880,7 @@
                         timestamp: new Date()
                     });
 
-                    window.mostrarToast(`Pacotes da conta ${nick} foram dizimados com sucesso!`, "sucesso");
+                    window.mostrarToast(`Pacotes da conta ${nick} foram zerados!`, "sucesso");
                     window.escanearHackers(); 
 
                 } catch (error) {
