@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel de Logs Avançados - Nin Online CCG</title>
@@ -509,19 +510,32 @@
         formattedAction = formattedAction.replace(/%%RANK_B%%/g, '<span class="inline-block text-blue-400 font-bold bg-blue-900/20 px-1 rounded mx-1">Rank B</span>');
         formattedAction = formattedAction.replace(/%%RANK_C%%/g, '<span class="inline-block text-green-400 font-bold bg-green-900/20 px-1 rounded mx-1">Rank C</span>');
 
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-700/50 transition">
-            <td class="px-6 py-3 text-slate-400 text-sm border-r border-slate-700/50">${dateStr}</td>
-            <td class="px-6 py-3 border-r border-slate-700/50">
-              <span class="px-2.5 py-1 text-[10px] font-black uppercase rounded border ${log.category.badge}">
-                ${log.category.label}
-              </span>
-            </td>
-            <td class="px-6 py-3 text-slate-300 font-medium whitespace-normal min-w-[300px] leading-relaxed">
-              ${formattedAction}
-            </td>
-          </tr>
-        `;
+const tr = document.createElement('tr');
+tr.className = "hover:bg-slate-700/50 transition";
+
+const tdDate = document.createElement('td');
+tdDate.className = "px-6 py-3 text-slate-400 text-sm border-r border-slate-700/50";
+tdDate.textContent = dateStr;
+
+const tdCategory = document.createElement('td');
+tdCategory.className = "px-6 py-3 border-r border-slate-700/50";
+tdCategory.innerHTML = `
+  <span class="px-2.5 py-1 text-[10px] font-black uppercase rounded border ${log.category.badge}">
+    ${log.category.label}
+  </span>
+`;
+
+const tdAction = document.createElement('td');
+tdAction.className = "px-6 py-3 text-slate-300 font-medium whitespace-normal min-w-[300px] leading-relaxed";
+
+// 🔒 (ANTI-XSS)
+tdAction.innerHTML = DOMPurify.sanitize(formattedAction);
+
+tr.appendChild(tdDate);
+tr.appendChild(tdCategory);
+tr.appendChild(tdAction);
+
+tbody.appendChild(tr);
       });
 
       pageInfo.innerText = `${Math.min(startIndex + 1, window.filteredLogs.length)} - ${Math.min(startIndex + window.itemsPerPage, window.filteredLogs.length)} de ${window.filteredLogs.length}`;
