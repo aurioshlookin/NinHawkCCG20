@@ -9,7 +9,6 @@
 // resetPackArea, showPasswordModal, changePassword,
 // timer de recarga de pacotes.
 // ============================================================
-import { serverTimestamp } from "firebase/firestore";
 
 function initApp() {
   const db = window.db;
@@ -19,10 +18,10 @@ function initApp() {
   window.logSystemAction = async (actionText) => {
     if (!window.currentUser) return;
     try {
-await addDoc(collection(db, "system_logs"), {
-  action: actionText,
-  timestamp: serverTimestamp()
-});
+      await addDoc(collection(db, "system_logs"), {
+        action: actionText,
+        timestamp: new Date()
+      });
     } catch (e) {
       console.warn("Falha ao registrar log:", e);
     }
