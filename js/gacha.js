@@ -446,10 +446,20 @@
       const boosterPack = document.getElementById('booster-pack');
 
       if (userData.pullsAvailable <= 0 && !isOpeningPack) {
-        if (boosterPack) boosterPack.classList.add('hidden');
-        if (containerVazio) { containerVazio.classList.remove('hidden'); containerVazio.classList.add('flex'); }
+        if (boosterPack && !boosterPack.classList.contains('hidden')) {
+  boosterPack.classList.add('hidden');
+}
+        if (containerVazio) { if (containerVazio.classList.contains('hidden')) {
+  containerVazio.classList.remove('hidden');
+  containerVazio.classList.add('flex');
+} }
       } else if (!isOpeningPack && window.cardDatabase.length > 0) {
-        if (boosterPack) boosterPack.classList.remove('hidden');
-        if (containerVazio) { containerVazio.classList.add('hidden'); containerVazio.classList.remove('flex'); }
+        if (boosterPack && boosterPack.classList.contains('hidden')) {
+  boosterPack.classList.remove('hidden');
+}
+        if (containerVazio) { if (!containerVazio.classList.contains('hidden')) {
+  containerVazio.classList.add('hidden');
+  containerVazio.classList.remove('flex');
+} }
       }
     };
