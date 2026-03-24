@@ -8,6 +8,11 @@
 // checkTierComplete, renderAchievements, claimAchievement,
 // resetPackArea, showPasswordModal, changePassword,
 // timer de recarga de pacotes.
+//
+// FIX conquistas: isOpeningAchiev, achievSelectedIndices e
+// currentAchievType movidos para window scope para que gacha.js
+// acesse o mesmo estado. userData atualizado localmente após
+// cada claim sem esperar o onSnapshot.
 // ============================================================
 
 function initApp() {
@@ -470,12 +475,20 @@ function initApp() {
     });
   };
 
-  let isOpeningAchiev = false;
-  let achievSelectedIndices = [];
-  let currentAchievType = 'basic';
+  // FIX: as 3 variáveis de estado do overlay de conquistas eram "let" locais
+  // dentro de initApp(). gacha.js declara suas próprias cópias locais com
+  // os mesmos nomes, então os dois arquivos nunca compartilhavam o mesmo estado.
+  // Resultado: closeAchievOverlay() em gacha.js setava isOpeningAchiev = false
+  // na cópia local de gacha.js, mas claimAchievement() aqui lia a cópia local
+  // de initApp() que nunca voltava a false — travando todos os claims seguintes.
+  // Solução: mover para window scope. O "|| valor" evita sobrescrever caso
+  // gacha.js já tenha inicializado antes (ordem de carregamento variável).
+  window.isOpeningAchiev       = window.isOpeningAchiev       || false;
+  window.achievSelectedIndices = window.achievSelectedIndices || [];
+  window.currentAchievType     = window.currentAchievType     || 'basic';
 
   window.claimAchievement = async (achievId, type) => {
-    if (isOpeningAchiev) return;
+    if (window.isOpeningAchiev) return;  // FIX: lê window scope
 
     const ud = window.userData || {};
     const totalOpened = ud.totalPacksOpened || 0;
@@ -488,7 +501,7 @@ function initApp() {
       if (ud.claimedAchievements?.[achievId]) return;
     }
 
-    isOpeningAchiev = true;
+    window.isOpeningAchiev = true;  // FIX: seta window scope
     const btn = document.getElementById(`btn-claim-${achievId}`);
     if (btn) { btn.disabled = true; btn.innerText = "Processando..."; }
 
@@ -505,15 +518,18 @@ function initApp() {
       if (achievId === 'first5') {
         updateObj.pullsAvailable = increment(5);
         await updateDoc(doc(db, "users", window.currentUser.uid), updateObj);
+
+        // FIX: atualiza userData local — não espera onSnapshot (pode demorar 1-3s)
+        window.userData.claimedAchievements = newClaimed;
+        window.userData.pullsAvailable = (window.userData.pullsAvailable || 0) + 5;
+
+        window.isOpeningAchiev = false;  // libera para próximos claims
         window.showMessage("Parabéns! Resgatou +5 Pacotes Básicos! Vá à aba Roleta para abri-los.");
-        isOpeningAchiev = false;
         window.updateGachaUI();
         window.renderAchievements();
         return;
       }
 
-      // Para conquistas com pacote premium/básico, sorteia cartas no cliente
-      // (conquistas não passam pela Cloud Function — são menos críticas)
       const cards = window.cardDatabase;
       if (!cards || cards.length === 0) throw new Error("Banco de cartas vazio.");
 
@@ -548,11 +564,17 @@ function initApp() {
 
       await updateDoc(doc(db, "users", window.currentUser.uid), updateObj);
 
+      // FIX: atualiza userData local imediatamente após gravar no Firestore.
+      // Sem isso, a 2ª conquista leria claimedAchievements desatualizado
+      // do snapshot anterior enquanto o onSnapshot ainda não retornou.
+      window.userData.claimedAchievements = newClaimed;
+      window.userData.inventory = newInv;
+
       window.currentAchievWonCards = wonCards;
       window.currentAchievMissedCards = missedCards;
       window.achievRevealedCount = 0;
-      achievSelectedIndices = [];
-      currentAchievType = type;
+      window.achievSelectedIndices = [];    // FIX: window scope, limpa o claim anterior
+      window.currentAchievType = type;      // FIX: window scope, gacha.js lê daqui
 
       if (window.logSystemAction) {
         const c1 = wonCards[0], c2 = wonCards[1];
@@ -560,16 +582,19 @@ function initApp() {
       }
 
       // Abre overlay do pacote de conquista
-      const overlay = document.getElementById('achiev-pack-overlay');
-      const pack = document.getElementById('achiev-booster-pack');
-      const revealed = document.getElementById('achiev-revealed-cards');
-      const btnClose = document.getElementById('btn-achiev-close');
-      const bgPremium = document.getElementById('achiev-pack-bg');
+      const overlay     = document.getElementById('achiev-pack-overlay');
+      const pack        = document.getElementById('achiev-booster-pack');
+      const revealed    = document.getElementById('achiev-revealed-cards');
+      const btnClose    = document.getElementById('btn-achiev-close');
+      const bgPremium   = document.getElementById('achiev-pack-bg');
       const iconPremium = document.getElementById('achiev-pack-icon-premium');
-      const iconBasic = document.getElementById('achiev-pack-icon-basic');
-      const label = document.getElementById('achiev-pack-label');
-      const sublabel = document.getElementById('achiev-pack-sublabel');
+      const iconBasic   = document.getElementById('achiev-pack-icon-basic');
+      const label       = document.getElementById('achiev-pack-label');
+      const sublabel    = document.getElementById('achiev-pack-sublabel');
       const overlayTitle = document.getElementById('achiev-overlay-title');
+
+      // FIX: limpa grade de cartas do claim anterior antes de abrir novo overlay
+      if (revealed) revealed.innerHTML = '';
 
       if (isPremium && bgPremium && iconPremium && iconBasic && label && sublabel) {
         pack.className = 'pack pack-premium glowing-premium cursor-pointer';
@@ -580,21 +605,34 @@ function initApp() {
         label.className = "block text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600 tracking-widest drop-shadow-[0_2px_2px_rgba(0,0,0,1)] z-10";
         sublabel.innerText = "Pacote de Conquista";
         sublabel.className = "block text-xs text-yellow-200 font-bold tracking-widest uppercase bg-black/50 px-2 py-1 rounded z-10";
+      } else if (!isPremium && bgPremium && iconPremium && iconBasic && label && sublabel) {
+        // FIX: reseta visual para básico caso claim anterior fosse premium
+        pack.className = 'pack cursor-pointer';
+        bgPremium.classList.add('hidden');
+        iconPremium.classList.add('hidden');
+        iconBasic.classList.remove('hidden');
+        label.innerText = "NIN";
+        label.className = "block text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-green-300 to-green-600 tracking-widest drop-shadow-[0_2px_2px_rgba(0,0,0,1)] z-10";
+        sublabel.innerText = "Pacote Básico";
+        sublabel.className = "block text-xs text-gray-300 font-bold tracking-widest uppercase z-10";
       }
 
-      if (pack) pack.classList.remove('hidden', 'tearing');
+      // FIX: remove 'tearing' que pode ter ficado do claim anterior
+      if (pack) { pack.classList.remove('hidden', 'tearing'); }
       if (revealed) revealed.classList.add('hidden');
       if (btnClose) btnClose.classList.add('hidden');
-      if (overlayTitle) overlayTitle.innerText = "Abra a sua Recompensa!";
+      if (overlayTitle) { overlayTitle.innerText = "Abra a sua Recompensa!"; overlayTitle.classList.add('animate-pulse'); }
       if (overlay) { overlay.classList.remove('hidden'); overlay.classList.add('flex'); }
 
       window.updateGachaUI();
+      window.renderAchievements();
 
     } catch (e) {
       window.showMessage("Erro ao resgatar conquista: " + e.message);
-      isOpeningAchiev = false;
+      window.isOpeningAchiev = false;  // FIX: libera em caso de erro
       if (btn) { btn.disabled = false; btn.innerText = "RESGATAR E ABRIR!"; }
     }
+    // NOTA: window.isOpeningAchiev só volta a false em closeAchievOverlay() (gacha.js)
   };
 
   // ── getUserMedals (versão original do código antigo) ──────────
