@@ -3,9 +3,18 @@
 // BUG-01 FIX: openPack() e openPremiumPack() agora chamam
 // a Cloud Function em vez de gravar direto no Firestore.
 // BUG-03 FIX: logGlobalStat() removido daqui (movido para CF)
+//
+// FIX conquistas: variáveis de estado do overlay migradas para
+// window scope para sincronizar com app.js:
+//   - isOpeningAchiev      → window.isOpeningAchiev
+//   - achievSelectedIndices → window.achievSelectedIndices
+//   - currentAchievType    → window.currentAchievType
+// closeAchievOverlay() agora reseta window.isOpeningAchiev
+// corretamente, desbloqueando claims subsequentes sem F5.
 // ============================================================
 
     const CLOUD_FUNCTIONS_URL = window.CLOUD_FUNCTIONS_URL || 'https://us-central1-nincardcollectionbr.cloudfunctions.net';
+
     window.promptOpenPack = (type) => {
       if (!currentUser || isOpeningPack || isProcessingPackTransaction) return;
       
@@ -31,7 +40,7 @@
       if (!currentUser || isProcessingPackTransaction || window.cardDatabase.length === 0) return;
       if ((userData.premiumPullsAvailable || 0) <= 0) return;
       isProcessingPackTransaction = true;
-        currentAchievType = 'premium';
+      window.currentAchievType = 'premium';  // FIX: window scope
 
       try {
         const token = await currentUser.getIdToken();
@@ -47,8 +56,8 @@
         window.currentAchievWonCards = wonCards;
         window.currentAchievMissedCards = missedCards;
         window.achievRevealedCount = 0;
-        achievSelectedIndices = [];
-        isOpeningAchiev = true;
+        window.achievSelectedIndices = [];   // FIX: window scope
+        window.isOpeningAchiev = true;       // FIX: window scope
 
         const overlay = document.getElementById('achiev-pack-overlay');
         const pack = document.getElementById('achiev-booster-pack');
@@ -59,6 +68,9 @@
         const iconBasic = document.getElementById('achiev-pack-icon-basic');
         const label = document.getElementById('achiev-pack-label');
         const sublabel = document.getElementById('achiev-pack-sublabel');
+
+        // FIX: limpa cartas do overlay anterior
+        if (revealed) revealed.innerHTML = '';
 
         pack.className = 'pack pack-premium glowing-premium cursor-pointer';
         bgPremium.classList.remove('hidden');
@@ -96,7 +108,8 @@
         overlayTitle.classList.remove('animate-pulse');
       }
 
-      let highestTierStr = currentAchievType === 'premium' ? 'SS' : 'A';
+      // FIX: lê window.currentAchievType (window scope)
+      let highestTierStr = window.currentAchievType === 'premium' ? 'SS' : 'A';
       window.playGachaSound(highestTierStr);
 
       pack.classList.add('tearing');
@@ -124,7 +137,7 @@
               <div class="opacity-0" style="animation: card-deal 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards ${index * 0.12}s;">
                 <div class="card-container w-24 h-36 sm:w-32 sm:h-48 md:w-40 md:h-60 cursor-pointer transform transition hover:scale-105 rounded-xl" id="achiev-card-${index}" onclick="window.revealAchievCard(${index})">
                   <div class="card-inner shadow-2xl rounded-xl" id="achiev-card-inner-${index}">
-                    <div class="card-back ${currentAchievType === 'premium' ? 'border-yellow-400 bg-gradient-to-br from-red-900 to-black' : 'hover:shadow-green-500/50'} transition duration-300 flex flex-col items-center justify-center rounded-xl border-[4px]">
+                    <div class="card-back ${window.currentAchievType === 'premium' ? 'border-yellow-400 bg-gradient-to-br from-red-900 to-black' : 'hover:shadow-green-500/50'} transition duration-300 flex flex-col items-center justify-center rounded-xl border-[4px]">
                       <img src="https://raw.githubusercontent.com/aurioshlookin/NinHawkCCG20/main/assets/img/icon.png" class="w-10 h-10 sm:w-16 sm:h-16 opacity-60 drop-shadow-[0_0_5px_rgba(34,197,94,0.4)]" alt="Card Logo">
                     </div>
                     <div class="card-front p-1 flex flex-col justify-between rounded-xl" id="achiev-card-front-${index}"></div>
@@ -144,11 +157,12 @@
         return;
       }
 
-      if (!innerContainer || achievSelectedIndices.length >= 2) return;
+      // FIX: lê window.achievSelectedIndices (window scope)
+      if (!innerContainer || window.achievSelectedIndices.length >= 2) return;
 
       const cardData = window.currentAchievWonCards[window.achievRevealedCount];
       window.achievRevealedCount++;
-      achievSelectedIndices.push(index);
+      window.achievSelectedIndices.push(index);  // FIX: window scope
 
       innerContainer.setAttribute('data-card-id', cardData.id);
 
@@ -164,11 +178,12 @@
         cardContainer.classList.add(`reveal-${cardData.tier}`, 'ring-4', ringColors[cardData.tier]);
       }
       
-      if (achievSelectedIndices.length === 2) {
+      // FIX: usa window.achievSelectedIndices
+      if (window.achievSelectedIndices.length === 2) {
         setTimeout(() => {
           let missedIndex = 0;
           for(let idx=0; idx<8; idx++) {
-            if (!achievSelectedIndices.includes(idx)) {
+            if (!window.achievSelectedIndices.includes(idx)) {
               const fakeCard = window.currentAchievMissedCards[missedIndex++];
               const innerCard = document.getElementById(`achiev-card-inner-${idx}`);
               
@@ -196,15 +211,24 @@
         overlay.classList.add('hidden');
         overlay.classList.remove('flex');
       }
-      isOpeningAchiev = false;
+      // FIX: reseta window scope — app.js e gacha.js compartilham o mesmo estado.
+      // Antes: "isOpeningAchiev = false" atualizava só a cópia local de gacha.js,
+      // enquanto claimAchievement() em app.js continuava lendo sua própria cópia
+      // local que nunca voltava a false — travando todos os claims sem F5.
+      window.isOpeningAchiev = false;
+      window.achievSelectedIndices = [];
+      window.achievRevealedCount = 0;
     };
 
     let currentPackCards = [];
     let selectedCardsIndices = [];
     let isOpeningPack = false;
     let isProcessingPackTransaction = false;
-    let currentAchievType = null;
-    let achievSelectedIndices = [];
+    // FIX: estas 3 variáveis eram "let" locais — agora são window scope.
+    // O "|| valor" garante que não sobrescrevem se app.js já inicializou antes.
+    window.currentAchievType     = window.currentAchievType     || null;
+    window.achievSelectedIndices = window.achievSelectedIndices || [];
+    window.isOpeningAchiev       = window.isOpeningAchiev       || false;
 
     function getRandomCard(isPremium = false) {
       if(window.cardDatabase.length === 0) return null; 
@@ -429,4 +453,3 @@
         if (containerVazio) { containerVazio.classList.add('hidden'); containerVazio.classList.remove('flex'); }
       }
     };
-
