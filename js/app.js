@@ -85,58 +85,7 @@ function initApp() {
   };
 
   // ── Atualiza UI da roleta (mostra/esconde pacote) ─────────────
-  window.updateGachaUI = () => {
-    const ud = window.userData || {};
-    const pullsCountEl = document.getElementById('pulls-count');
-    if (pullsCountEl) pullsCountEl.innerText = ud.pullsAvailable || 0;
 
-    const totalOpenedEl = document.getElementById('gacha-total-packs-opened');
-    if (totalOpenedEl) totalOpenedEl.innerText = ud.totalPacksOpened || 0;
-
-    const totalOpened = ud.totalPacksOpened || 0;
-    const claimedTens = ud.claimedAchievements?.tens || 0;
-    const maxTens = Math.floor(totalOpened / 10);
-    const pendingClaims = maxTens > claimedTens;
-
-    let currentProgress = totalOpened % 10;
-    if (pendingClaims && currentProgress === 0) currentProgress = 10;
-
-    const progressText = document.getElementById('premium-progress-text');
-    const progressBar = document.getElementById('premium-progress-bar');
-    const claimAlert = document.getElementById('premium-claim-alert');
-
-    if (progressText) progressText.innerText = `${currentProgress}/10`;
-    if (progressBar) progressBar.style.width = `${(currentProgress / 10) * 100}%`;
-    if (claimAlert) {
-      if (pendingClaims) claimAlert.classList.remove('hidden');
-      else claimAlert.classList.add('hidden');
-    }
-
-    const invPremiumAlert = document.getElementById('inventory-premium-alert');
-    const invPremiumCount = document.getElementById('inventory-premium-count');
-    if (invPremiumAlert && invPremiumCount) {
-      if (ud.premiumPullsAvailable > 0) {
-        invPremiumCount.innerText = ud.premiumPullsAvailable;
-        invPremiumAlert.classList.remove('hidden');
-        invPremiumAlert.classList.add('flex');
-      } else {
-        invPremiumAlert.classList.add('hidden');
-        invPremiumAlert.classList.remove('flex');
-      }
-    }
-
-    const containerVazio = document.getElementById('out-of-pulls-container');
-    const boosterPack = document.getElementById('booster-pack');
-    const isOpeningPack = window.isOpeningPack || false;
-
-    if ((ud.pullsAvailable || 0) <= 0 && !isOpeningPack) {
-      if (boosterPack) boosterPack.classList.add('hidden');
-      if (containerVazio) { containerVazio.classList.remove('hidden'); containerVazio.classList.add('flex'); }
-    } else if (!isOpeningPack && window.cardDatabase?.length > 0) {
-      if (boosterPack) boosterPack.classList.remove('hidden');
-      if (containerVazio) { containerVazio.classList.add('hidden'); containerVazio.classList.remove('flex'); }
-    }
-  };
 
   // ── Atualiza toda UI que depende do cardDatabase ──────────────
   window.updateAllCardDependentUI = () => {
