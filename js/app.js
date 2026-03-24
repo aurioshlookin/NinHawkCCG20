@@ -316,13 +316,15 @@ function initApp() {
     } catch (e) {}
   };
 
-  // ── Timer de recarga de pacotes ───────────────────────────────
-  const THREE_HOURS = 3 * 60 * 60 * 1000;
+// ── Timer de recarga de pacotes ───────────────────────────────
+const THREE_HOURS = 3 * 60 * 60 * 1000;
+let isUpdatingPulls = false; // lock para evitar race condition
 
 setInterval(() => {
   const ud = window.userData;
   const user = window.currentUser;
   if (!user || !ud) return;
+  if (isUpdatingPulls) return; // já tem uma atualização em andamento
 
   if ((ud.pullsAvailable || 0) < 5 && ud.lastPullTimestamp) {
     const now = Date.now();
@@ -335,13 +337,18 @@ setInterval(() => {
       if (newPulls === 5) newTimestamp = null;
 
       if (newPulls !== ud.pullsAvailable) {
+        isUpdatingPulls = true; // trava o timer
+        // Atualiza local ANTES do updateDoc para evitar recalculo
+        ud.pullsAvailable = newPulls;
+        ud.lastPullTimestamp = newTimestamp;
+
         updateDoc(doc(db, "users", user.uid), {
           pullsAvailable: newPulls,
           lastPullTimestamp: newTimestamp
-        }).catch(() => {});
-        ud.pullsAvailable = newPulls;
-        ud.lastPullTimestamp = newTimestamp;
-        // Só chama updateGachaUI quando realmente mudou
+        }).catch(() => {}).finally(() => {
+          isUpdatingPulls = false; // libera após confirmar no Firestore
+        });
+
         if (window.updateGachaUI) window.updateGachaUI();
       }
     }
