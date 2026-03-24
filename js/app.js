@@ -330,21 +330,25 @@ function initApp() {
       const now = Date.now();
       const timePassed = now - ud.lastPullTimestamp;
 
-      if (timePassed >= THREE_HOURS) {
-        const pullsEarned = Math.floor(timePassed / THREE_HOURS);
-        let newPulls = Math.min(5, (ud.pullsAvailable || 0) + pullsEarned);
-        let newTimestamp = ud.lastPullTimestamp + (pullsEarned * THREE_HOURS);
-        if (newPulls === 5) newTimestamp = null;
+const pullsEarned = Math.floor(timePassed / THREE_HOURS);
 
-        updateDoc(doc(db, "users", user.uid), {
-          pullsAvailable: newPulls,
-          lastPullTimestamp: newTimestamp
-        }).catch(() => {});
+if (pullsEarned > 0) {
+  const newPulls = Math.min(5, (ud.pullsAvailable || 0) + pullsEarned);
+  let newTimestamp = ud.lastPullTimestamp + (pullsEarned * THREE_HOURS);
+  if (newPulls === 5) newTimestamp = null;
 
-        ud.pullsAvailable = newPulls;
-        ud.lastPullTimestamp = newTimestamp;
-        window.updateGachaUI();
-      }
+  // 🔒 só atualiza se mudou mesmo
+  if (newPulls !== ud.pullsAvailable) {
+    updateDoc(doc(db, "users", user.uid), {
+      pullsAvailable: newPulls,
+      lastPullTimestamp: newTimestamp
+    }).catch(() => {});
+
+    ud.pullsAvailable = newPulls;
+    ud.lastPullTimestamp = newTimestamp;
+    window.updateGachaUI();
+  }
+}
 
       if ((ud.pullsAvailable || 0) < 5 && ud.lastPullTimestamp) {
         const timerContainer = document.getElementById('pull-timer-container');
