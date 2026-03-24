@@ -363,34 +363,6 @@ function initApp() {
     }
   }, 1000);
 
-  // ── Mudar senha (legado — mantido por compatibilidade) ────────
-  window.showPasswordModal = () => {
-    const el = document.getElementById('password-modal');
-    if (el) el.classList.remove('hidden');
-  };
-
-  window.changePassword = async () => {
-    const p1 = document.getElementById('new-password')?.value;
-    const p2 = document.getElementById('confirm-password')?.value;
-    if (!p1 || !p2) return;
-    if (p1 !== p2) return window.showMessage("As senhas não coincidem!");
-    if (p1.length < 6) return window.showMessage("A senha deve ter pelo menos 6 caracteres.");
-
-    if (window.currentUser) {
-      try {
-        await updatePassword(window.currentUser, p1);
-        window.showMessage("Senha atualizada com sucesso!");
-        document.getElementById('password-modal')?.classList.add('hidden');
-      } catch (error) {
-        if (error.code === 'auth/requires-recent-login') {
-          window.showMessage("Por segurança, saia e entre novamente antes de mudar a senha.");
-        } else {
-          window.showMessage("Erro ao mudar senha: " + error.message);
-        }
-      }
-    }
-  };
-
   // ── Resetar área de pacotes após abrir ────────────────────────
   window.resetPackArea = () => {
     const revealedCards = document.getElementById('revealed-cards');
