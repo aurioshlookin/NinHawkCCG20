@@ -64,7 +64,6 @@ function initAuth() {
   // ── onAuthStateChanged — reage ao login/logout ────────────────
 
   
-  const LOCAL_SESSION_ID = crypto.randomUUID();
   let unsubUser = null;
   
   onAuthStateChanged(auth, (user) => {
@@ -89,7 +88,7 @@ function initAuth() {
         const el = document.getElementById(id);
         if (el) el.classList.remove("hidden");
       });
-      ["mobile-btn-password","mobile-btn-logout"].forEach(id => {
+      ["mobile-btn-logout"].forEach.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.remove("hidden");
       });
@@ -98,29 +97,11 @@ function initAuth() {
         window.switchTab("gacha");
       }
   
-      // Sessão única — registra esta aba como ativa
-      updateDoc(doc(db, "users", user.uid), { currentSessionId: LOCAL_SESSION_ID })
-        .catch(e => console.warn("Sessão:", e));
-  
       // Escuta mudanças em tempo real no documento do usuário
       if (unsubUser) unsubUser();
       unsubUser = onSnapshot(doc(db, "users", user.uid), async (docSnap) => {
         if (!docSnap.exists()) return;
         const data = docSnap.data();
-  
-        // Detecta login em outro dispositivo
-        if (data.currentSessionId && data.currentSessionId !== LOCAL_SESSION_ID) {
-          if (unsubUser) unsubUser();
-          await signOut(auth);
-          document.body.innerHTML = `
-            <div class="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center p-4 z-[9999]">
-              <div class="text-6xl mb-4 animate-bounce">⚠️</div>
-              <h1 class="text-3xl font-black text-red-500 mb-2 text-center">Conexão Encerrada</h1>
-              <p class="text-gray-300 mb-8 text-center max-w-sm">Sua conta foi conectada em outro lugar. Por segurança, você foi desconectado daqui.</p>
-              <button onclick="window.location.reload()" class="bg-green-600 hover:bg-green-500 text-white px-8 py-3 rounded-lg font-bold transition">Recarregar</button>
-            </div>`;
-          return;
-        }
   
         window.userData = data;
         if (window.globalSettings?.cardsVersion !== data.cardsVersion) {
@@ -166,7 +147,7 @@ function initAuth() {
       if (loggedInView)  { loggedInView.classList.add("hidden"); loggedInView.classList.remove("flex"); loggedInView.style.display = "none"; }
   
       ["tab-admin","tab-trade","tab-achievements","tab-gacha","tab-album","tab-rarity","tab-fusion",
-       "mobile-btn-password","mobile-btn-logout"].forEach(id => {
+ "mobile-btn-logout"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add("hidden");
       });
