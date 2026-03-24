@@ -104,14 +104,6 @@ function initAuth() {
         const data = docSnap.data();
   
         window.userData = data;
-
-// Normaliza lastPullTimestamp para número (ms)
-if (window.userData.lastPullTimestamp?.toMillis) {
-  window.userData.lastPullTimestamp = window.userData.lastPullTimestamp.toMillis();
-} else if (window.userData.lastPullTimestamp?.seconds) {
-  window.userData.lastPullTimestamp = window.userData.lastPullTimestamp.seconds * 1000;
-}
-        
         if (window.globalSettings?.cardsVersion !== data.cardsVersion) {
   if (window.loadCardsCache) window.loadCardsCache();
 }
@@ -120,6 +112,13 @@ if (window.userData.lastPullTimestamp?.toMillis) {
         window.userData.notifications       = data.notifications       || [];
         if (window.userData.premiumPullsAvailable === undefined) window.userData.premiumPullsAvailable = 0;
         if (window.userData.totalTradesCompleted  === undefined) window.userData.totalTradesCompleted  = 0;
+
+        // Normaliza lastPullTimestamp para número (ms)
+if (window.userData.lastPullTimestamp?.toMillis) {
+  window.userData.lastPullTimestamp = window.userData.lastPullTimestamp.toMillis();
+} else if (window.userData.lastPullTimestamp?.seconds) {
+  window.userData.lastPullTimestamp = window.userData.lastPullTimestamp.seconds * 1000;
+}
   
         // Auto-heal de createdAt (campo não sensível — permitido pelas rules)
         if (!data.createdAt) {
