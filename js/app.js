@@ -346,7 +346,6 @@ if (pullsEarned > 0) {
 
     ud.pullsAvailable = newPulls;
     ud.lastPullTimestamp = newTimestamp;
-    window.updateGachaUI();
   }
 }
 
