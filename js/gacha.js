@@ -224,7 +224,7 @@ let lastPullsAvailable = null;
 
     let currentPackCards = [];
     let selectedCardsIndices = [];
-    let isOpeningPack = false;
+    window.isOpeningPack = window.isOpeningPack || false;
     let isProcessingPackTransaction = false;
     // FIX: estas 3 variáveis eram "let" locais — agora são window scope.
     // O "|| valor" garante que não sobrescrevem se app.js já inicializou antes.
@@ -284,7 +284,7 @@ let lastPullsAvailable = null;
         const highestTierVal = Math.max(...wonCards.concat(missedCards).map(c => TIER_VALUES[c.tier] || 1));
         const highestTierStr = Object.keys(TIER_VALUES).find(k => TIER_VALUES[k] === highestTierVal) || 'C';
 
-        isOpeningPack = true;
+        window.isOpeningPack = true;
 
         const pack = document.getElementById('booster-pack');
         if (pack) {
@@ -389,7 +389,7 @@ let lastPullsAvailable = null;
               }
             }
           }
-          isOpeningPack = false;
+          window.isOpeningPack = false;
           const btnNext = document.getElementById('btn-next');
           if(btnNext) btnNext.classList.remove('hidden');
         }, 1000); 
