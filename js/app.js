@@ -267,66 +267,38 @@ function initApp() {
 
 // ── Timer de recarga de pacotes ───────────────────────────────
 const THREE_HOURS = 3 * 60 * 60 * 1000;
-let isUpdatingPulls = false; // lock para evitar race condition
 
 setInterval(() => {
   const ud = window.userData;
   const user = window.currentUser;
   if (!user || !ud) return;
-  if (isUpdatingPulls) return;
 
+  // Timer só atualiza o TEXTO do contador — nunca toca no Firestore
   if ((ud.pullsAvailable || 0) < 5 && ud.lastPullTimestamp) {
-    const now = Date.now();
-
-    // Normaliza o timestamp caso tenha voltado como objeto Firestore
     let ts = ud.lastPullTimestamp;
     if (ts?.toMillis) ts = ts.toMillis();
     else if (ts?.seconds) ts = ts.seconds * 1000;
     ts = Number(ts);
 
-    // Se ainda não for um número válido, não faz nada
-    if (!ts || isNaN(ts) || ts > now) return;
-
-    const timePassed = now - ts;
-    const pullsEarned = Math.floor(timePassed / THREE_HOURS);
-
-    if (pullsEarned > 0) {
-      const newPulls = Math.min(5, (ud.pullsAvailable || 0) + pullsEarned);
-      let newTimestamp = ts + (pullsEarned * THREE_HOURS);
-      if (newPulls === 5) newTimestamp = null;
-
-      if (newPulls !== ud.pullsAvailable) {
-        isUpdatingPulls = true;
-        ud.pullsAvailable = newPulls;
-        ud.lastPullTimestamp = newTimestamp;
-
-        updateDoc(doc(db, "users", user.uid), {
-          pullsAvailable: newPulls,
-          lastPullTimestamp: newTimestamp
-        }).catch(() => {}).finally(() => {
-          isUpdatingPulls = false;
-        });
-
-        if (window.updateGachaUI) window.updateGachaUI();
-      }
-    }
-
-    // Atualiza o texto do timer usando o ts normalizado
-    if ((ud.pullsAvailable || 0) < 5 && ts) {
+    if (!ts || isNaN(ts) || ts > Date.now()) {
       const timerContainer = document.getElementById('pull-timer-container');
-      const timerText = document.getElementById('pull-timer');
-      const largeTimer = document.getElementById('large-pull-timer');
-
-      if (timerContainer) timerContainer.classList.remove('hidden');
-
-      const timeLeft = THREE_HOURS - ((Date.now() - ts) % THREE_HOURS);
-      const h = Math.floor(timeLeft / (1000 * 60 * 60)).toString().padStart(2, '0');
-      const m = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
-      const s = Math.floor((timeLeft % (1000 * 60)) / 1000).toString().padStart(2, '0');
-
-      if (timerText) timerText.innerText = `${h}h ${m}m ${s}s`;
-      if (largeTimer) largeTimer.innerText = `${h}h ${m}m ${s}s`;
+      if (timerContainer) timerContainer.classList.add('hidden');
+      return;
     }
+
+    const timerContainer = document.getElementById('pull-timer-container');
+    const timerText = document.getElementById('pull-timer');
+    const largeTimer = document.getElementById('large-pull-timer');
+
+    if (timerContainer) timerContainer.classList.remove('hidden');
+
+    const timeLeft = THREE_HOURS - ((Date.now() - ts) % THREE_HOURS);
+    const h = Math.floor(timeLeft / (1000 * 60 * 60)).toString().padStart(2, '0');
+    const m = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+    const s = Math.floor((timeLeft % (1000 * 60)) / 1000).toString().padStart(2, '0');
+
+    if (timerText) timerText.innerText = `${h}h ${m}m ${s}s`;
+    if (largeTimer) largeTimer.innerText = `${h}h ${m}m ${s}s`;
   } else {
     const timerContainer = document.getElementById('pull-timer-container');
     if (timerContainer) timerContainer.classList.add('hidden');
