@@ -1,8 +1,6 @@
 // ============================================================
 // community.js — Ranking, leaderboard, busca de jogadores
-// BUG-05 FIX: syncLeaderboard() removido daqui.
-// O sync agora ocorre dentro da Cloud Function openBasicPack.
-// CORREÇÃO: adicionada window.getUserMedals que estava faltando.
+// O sync ocorre dentro da Cloud Function openBasicPack.
 // ============================================================
 
 // ── Medalhas do jogador baseadas no inventário ────────────────
