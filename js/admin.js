@@ -1,7 +1,5 @@
 // ============================================================
 // admin.js — Painel Administrativo
-// BUG-06 FIX: verificação do PIN agora chama verifyAdminPin()
-// Cloud Function em vez de ler admin_security diretamente.
 // ============================================================
 
 // Variáveis de estado do painel admin
@@ -31,11 +29,6 @@ window.loadCardsCache = async () => {
     }
   } catch (err) { console.error("Erro ao carregar cartas:", err); }
 };
-
-// CORREÇÃO: removida a chamada automática window.loadCardsCache() daqui.
-// O Firebase (db, getDoc, etc.) ainda não está disponível quando este
-// script carrega. A chamada deve ser feita pelo auth.js após o login,
-// ou pelo onAuthStateChanged quando o contexto já estiver pronto.
 
 window.toggleRegistration = async () => {
   if (!currentUser || userData.role !== 'admin') return;
