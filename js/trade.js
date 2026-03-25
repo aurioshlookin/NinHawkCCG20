@@ -139,52 +139,52 @@ if (tradeFormEl) {
     const btn     = document.getElementById('btn-create-trade');
     const offerId = document.getElementById('trade-offer')?.value;
     const reqTier = document.getElementById('trade-request-tier')?.value;
+
     if (!offerId || !reqTier) return window.showMessage("Selecione a carta e a raridade desejada!");
+
     const inv = window.userData.inventory || {};
-    if ((inv[offerId] || 0) <= window.currentOfferQty) {
+    if ((inv[offerId] || 0) < 2) {
       return window.showMessage("Não possui cartas suficientes para criar a oferta e manter 1 cópia.");
     }
+
     const tp          = window.getTradePeriod();
     const tradesToday = window.userData.lastTradeDate === tp ? (window.userData.tradesToday || 0) : 0;
     if (tradesToday >= 2) return window.showMessage("Você já concluiu as suas trocas neste período.");
+
+    const offerCard    = window.cardDatabase.find(c => c.id === offerId);
+    const reqQtyToSave = TRADE_RATIOS[offerCard.tier]?.[reqTier] || 1;
+
     if (btn) { btn.disabled = true; btn.innerText = "Publicando..."; }
 
-    const offerCard      = window.cardDatabase.find(c => c.id === offerId);
-    const offerQtyToSave = 1;
-    const reqQtyToSave   = TRADE_RATIOS[offerCard.tier]?.[reqTier] || 1;
-
     try {
-      // runTransaction é permitida pelas rules porque:
-      // - a carta do inventário é DEDUZIDA (não aumenta packs)
-      // - notInflatingPacks() só bloqueia aumentar pullsAvailable
-      await runTransaction(db, async (transaction) => {
-        const userRef  = doc(db, "users", window.currentUser.uid);
-        const userSnap = await transaction.get(userRef);
-        let transInv   = userSnap.data().inventory || {};
-        if ((transInv[offerId] || 0) <= offerQtyToSave) throw "Cartas insuficientes no inventário.";
-        transInv[offerId] -= offerQtyToSave;
-        transaction.update(userRef, { inventory: transInv });
-        const newTradeRef = doc(collection(db, "trades"));
-        transaction.set(newTradeRef, {
-          fromUserId:      window.currentUser.uid,
-          fromUserName:    window.currentUser.displayName,
-          fromUserAvatar:  window.currentUser.photoURL || '',
-          offerCardId:     offerId,
-          offerQuantity:   offerQtyToSave,
-          requestTier:     reqTier,
-          requestQuantity: reqQtyToSave,
-          status:          'open',
-          timestamp:       serverTimestamp(),
-        });
-      });
+      // Chama a CF createTrade — ela deduz o inventário e cria o documento
+      const token    = await window.currentUser.getIdToken();
+      const response = await fetch(
+        `${window.CLOUD_FUNCTIONS_URL}/createTrade`,
+        {
+          method:  'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            offerCardId:     offerId,
+            requestTier:     reqTier,
+            requestQuantity: reqQtyToSave,
+          }),
+        }
+      );
+
+      const json = await response.json();
+      if (!response.ok || json.error) {
+        throw new Error(json.error?.message || "Erro ao publicar oferta.");
+      }
+
       window.showMessage("Sua oferta foi para o Mural!");
       const offerInput = document.getElementById('trade-offer');
       if (offerInput) offerInput.value = "";
       if (window.updateRequestTierOptions) window.updateRequestTierOptions();
       if (window.loadTradesBoard) await window.loadTradesBoard();
-      await window.logSystemAction(`${window.currentUser.displayName} publicou uma oferta de troca no Mural.`);
+
     } catch (err) {
-      window.showMessage("Erro ao publicar: " + err);
+      window.showMessage("Erro ao publicar: " + err.message);
     } finally {
       if (btn) { btn.disabled = false; btn.innerText = "Publicar Oferta no Mural"; }
     }
