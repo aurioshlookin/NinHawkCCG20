@@ -154,6 +154,9 @@ if (tradeFormEl) {
     const reqQtyToSave   = TRADE_RATIOS[offerCard.tier]?.[reqTier] || 1;
 
     try {
+      // runTransaction é permitida pelas rules porque:
+      // - a carta do inventário é DEDUZIDA (não aumenta packs)
+      // - notInflatingPacks() só bloqueia aumentar pullsAvailable
       await runTransaction(db, async (transaction) => {
         const userRef  = doc(db, "users", window.currentUser.uid);
         const userSnap = await transaction.get(userRef);
@@ -262,26 +265,26 @@ window.renderTradeBoard = () => {
   if (globalTradesCount === 0) globalGrid.innerHTML   = '<div class="p-8 text-center text-gray-400 w-full col-span-full">Nenhuma oferta no Mural.</div>';
 };
 
+// ── cancelTrade via Cloud Function ────────────────────────────
 window.cancelTrade = (tradeId) => {
   window.showMessage("Deseja cancelar esta oferta e recuperar as suas cartas?", true, async () => {
     try {
-      await runTransaction(db, async (transaction) => {
-        const tradeRef  = doc(db, "trades", tradeId);
-        const tradeSnap = await transaction.get(tradeRef);
-        if (!tradeSnap.exists() || tradeSnap.data().status !== 'open') throw "Esta oferta não está disponível.";
-        const tradeData = tradeSnap.data();
-        if (tradeData.fromUserId !== window.currentUser.uid) throw "Você não é o dono desta oferta.";
-        const userRef  = doc(db, "users", window.currentUser.uid);
-        const userSnap = await transaction.get(userRef);
-        let transInv   = userSnap.data().inventory || {};
-        transInv[tradeData.offerCardId] = (transInv[tradeData.offerCardId] || 0) + (tradeData.offerQuantity || 1);
-        transaction.update(userRef, { inventory: transInv });
-        transaction.update(tradeRef, { status: 'cancelled' });
-      });
+      const token    = await window.currentUser.getIdToken();
+      const response = await fetch(
+        `${window.CLOUD_FUNCTIONS_URL}/cancelTrade`,
+        {
+          method:  'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ tradeId }),
+        }
+      );
+      const json = await response.json();
+      if (!response.ok || json.error) throw new Error(json.error?.message || "Erro ao cancelar.");
+
       window.showMessage("Oferta cancelada e cartas devolvidas ao seu álbum!");
       if (window.loadTradesBoard) await window.loadTradesBoard();
     } catch (e) {
-      window.showMessage("Erro ao cancelar: " + e);
+      window.showMessage("Erro ao cancelar: " + e.message);
     }
   });
 };
@@ -375,9 +378,7 @@ window.toggleAcceptCard = (cardId, instanceId) => {
   }
 };
 
-// ============================================================
-// confirmAcceptTrade — chama a Cloud Function acceptTrade
-// ============================================================
+// ── confirmAcceptTrade via Cloud Function ─────────────────────
 window.confirmAcceptTrade = async () => {
   const state           = window.currentTradeAccept;
   const selectedCardIds = state.selectedIds.map(item => item.cardId);
@@ -415,7 +416,7 @@ window.confirmAcceptTrade = async () => {
 };
 
 // ==========================================
-// SISTEMA DE FUSÃO DE CARTAS
+// SISTEMA DE FUSÃO DE CARTAS (UI)
 // ==========================================
 
 window.updateFusionOptions = () => {
@@ -467,7 +468,7 @@ window.updateFusionPreview = () => {
         <span class="text-xs text-gray-400 mt-3 font-bold uppercase tracking-widest text-center px-2">Cartas<br>Repetidas</span>
       </div>`;
     if (costBadge) { costBadge.innerText = `-${rule.cost} Cópias`; costBadge.classList.remove('hidden'); costBadge.classList.add('flex'); }
-    const isDarkBg = ['S', 'SS'].includes(rule.next);
+    const isDarkBg     = ['S', 'SS'].includes(rule.next);
     const textColorFix = isDarkBg ? 'text-white' : rule.textColor;
     if (resultTierText) {
       resultTierText.innerText = `Nova Carta: Rank ${rule.next}`;
@@ -493,3 +494,4 @@ window.updateFusionPreview = () => {
     if (btn) btn.disabled = true;
   }
 };
+
