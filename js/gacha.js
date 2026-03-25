@@ -1,16 +1,5 @@
 // ============================================================
 // gacha.js — Sistema de Pacotes e Conquistas
-// BUG-01 FIX: openPack() e openPremiumPack() agora chamam
-// a Cloud Function em vez de gravar direto no Firestore.
-// BUG-03 FIX: logGlobalStat() removido daqui (movido para CF)
-//
-// FIX conquistas: variáveis de estado do overlay migradas para
-// window scope para sincronizar com app.js:
-//   - isOpeningAchiev      → window.isOpeningAchiev
-//   - achievSelectedIndices → window.achievSelectedIndices
-//   - currentAchievType    → window.currentAchievType
-// closeAchievOverlay() agora reseta window.isOpeningAchiev
-// corretamente, desbloqueando claims subsequentes sem F5.
 // ============================================================
 
 let lastPullsAvailable = null;
@@ -38,11 +27,10 @@ let lastPullsAvailable = null;
     };
 
     window.openInventoryPremiumPack = async () => {
-      // BUG-01 FIX: usa Cloud Function para abrir pacote premium
       if (!currentUser || isProcessingPackTransaction || window.cardDatabase.length === 0) return;
       if ((userData.premiumPullsAvailable || 0) <= 0) return;
       isProcessingPackTransaction = true;
-      window.currentAchievType = 'premium';  // FIX: window scope
+      window.currentAchievType = 'premium';  
 
       try {
         const token = await currentUser.getIdToken();
@@ -58,8 +46,8 @@ let lastPullsAvailable = null;
         window.currentAchievWonCards = wonCards;
         window.currentAchievMissedCards = missedCards;
         window.achievRevealedCount = 0;
-        window.achievSelectedIndices = [];   // FIX: window scope
-        window.isOpeningAchiev = true;       // FIX: window scope
+        window.achievSelectedIndices = [];   
+        window.isOpeningAchiev = true;      
 
         const overlay = document.getElementById('achiev-pack-overlay');
         const pack = document.getElementById('achiev-booster-pack');
@@ -71,7 +59,7 @@ let lastPullsAvailable = null;
         const label = document.getElementById('achiev-pack-label');
         const sublabel = document.getElementById('achiev-pack-sublabel');
 
-        // FIX: limpa cartas do overlay anterior
+        // Limpa cartas do overlay anterior
         if (revealed) revealed.innerHTML = '';
 
         pack.className = 'pack pack-premium glowing-premium cursor-pointer';
@@ -110,7 +98,6 @@ let lastPullsAvailable = null;
         overlayTitle.classList.remove('animate-pulse');
       }
 
-      // FIX: lê window.currentAchievType (window scope)
       let highestTierStr = window.currentAchievType === 'premium' ? 'SS' : 'A';
       window.playGachaSound(highestTierStr);
 
@@ -159,7 +146,6 @@ let lastPullsAvailable = null;
         return;
       }
 
-      // FIX: lê window.achievSelectedIndices (window scope)
       if (!innerContainer || window.achievSelectedIndices.length >= 2) return;
 
       const cardData = window.currentAchievWonCards[window.achievRevealedCount];
@@ -180,7 +166,6 @@ let lastPullsAvailable = null;
         cardContainer.classList.add(`reveal-${cardData.tier}`, 'ring-4', ringColors[cardData.tier]);
       }
       
-      // FIX: usa window.achievSelectedIndices
       if (window.achievSelectedIndices.length === 2) {
         setTimeout(() => {
           let missedIndex = 0;
@@ -213,10 +198,6 @@ let lastPullsAvailable = null;
         overlay.classList.add('hidden');
         overlay.classList.remove('flex');
       }
-      // FIX: reseta window scope — app.js e gacha.js compartilham o mesmo estado.
-      // Antes: "isOpeningAchiev = false" atualizava só a cópia local de gacha.js,
-      // enquanto claimAchievement() em app.js continuava lendo sua própria cópia
-      // local que nunca voltava a false — travando todos os claims sem F5.
       window.isOpeningAchiev = false;
       window.achievSelectedIndices = [];
       window.achievRevealedCount = 0;
@@ -226,7 +207,6 @@ let lastPullsAvailable = null;
     let selectedCardsIndices = [];
     window.isOpeningPack = window.isOpeningPack || false;
     let isProcessingPackTransaction = false;
-    // FIX: estas 3 variáveis eram "let" locais — agora são window scope.
     // O "|| valor" garante que não sobrescrevem se app.js já inicializou antes.
     window.currentAchievType     = window.currentAchievType     || null;
     window.achievSelectedIndices = window.achievSelectedIndices || [];
@@ -256,8 +236,6 @@ let lastPullsAvailable = null;
     }
 
     window.openPack = async () => {
-      // BUG-01 FIX: sorteio e gravação agora ocorrem na Cloud Function.
-      // O cliente NÃO mais grava inventory/pullsAvailable diretamente.
       if (!currentUser || isOpeningPack || isProcessingPackTransaction || window.cardDatabase.length === 0) return;
       isProcessingPackTransaction = true;
 
@@ -331,8 +309,6 @@ let lastPullsAvailable = null;
             }
           }, 400);
         }, suspenseTime);
-
-        // BUG-03 FIX: logGlobalStat removido daqui — Cloud Function já loga no servidor
 
       } catch (error) {
         window.showMessage("Erro: " + error.message);
