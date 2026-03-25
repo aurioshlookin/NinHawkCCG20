@@ -1,20 +1,11 @@
 // ============================================================
 // app.js — Funções globais de aplicação
-// Contém funções que estavam no <script type="module"> do
-// index.html antigo:
-// updateGachaUI, updateAllCardDependentUI, applyGlobalSettingsUI,
-// logSystemAction, loadGlobalStats, suggestNextCardNumber,
-// renderNotifications, toggleNotifications, clearNotifications,
-// checkTierComplete, renderAchievements, claimAchievement,
-// resetPackArea, showPasswordModal, changePassword,
-// timer de recarga de pacotes.
 // ============================================================
 
 function initApp() {
   const db = window.db;
   const auth = window.auth;
 
-  // ── Log de ações de sistema ───────────────────────────────────
   window.logSystemAction = async (actionText) => {
     if (!window.currentUser) return;
     try {
@@ -27,7 +18,6 @@ function initApp() {
     }
   };
 
-  // ── Aplica configurações globais na UI ────────────────────────
   window.applyGlobalSettingsUI = () => {
     const gs = window.globalSettings || {};
 
@@ -55,7 +45,6 @@ function initApp() {
     }
   };
 
-  // Escuta mudanças nas configurações globais em tempo real
   if (window.onSnapshot && window.doc) {
     onSnapshot(doc(db, "settings", "global"), (docSnap) => {
       if (docSnap.exists()) {
@@ -65,7 +54,6 @@ function initApp() {
     });
   }
 
-  // ── Estatísticas globais (aba Comunidade) ─────────────────────
   window.loadGlobalStats = async () => {
     try {
       const statsSnap = await getDoc(doc(db, "settings", "globalStats"));
@@ -79,10 +67,6 @@ function initApp() {
     } catch (err) {}
   };
 
-  // ── Atualiza UI da roleta (mostra/esconde pacote) ─────────────
-
-
-  // ── Atualiza toda UI que depende do cardDatabase ──────────────
   window.updateAllCardDependentUI = () => {
     const count = { C: 0, B: 0, A: 0, S: 0, SS: 0 };
     window.cardDatabase.forEach(c => { if (count[c.tier] !== undefined) count[c.tier]++; });
@@ -108,7 +92,6 @@ function initApp() {
     if (totalCardsEl) totalCardsEl.innerText = total;
     if (adminCountEl) adminCountEl.innerText = total;
 
-    // Lista de cartas no painel admin
     const adminListContainer = document.getElementById('admin-card-list-container');
     if (adminListContainer && window.currentUser && window.userData?.role === 'admin') {
       adminListContainer.innerHTML = '';
@@ -162,7 +145,6 @@ function initApp() {
       });
     }
 
-    // Mostra/esconde conteúdo da roleta baseado em ter cartas
     const gachaContent = document.getElementById('gacha-content');
     const gachaEmpty = document.getElementById('gacha-empty-db');
 
@@ -186,10 +168,8 @@ function initApp() {
     }
   };
 
-  // Chama loadCardsCache agora que o Firebase está pronto
   if (window.loadCardsCache) window.loadCardsCache();
 
-  // ── Sugere próximo número de carta no admin ───────────────────
   window.suggestNextCardNumber = () => {
     if (typeof editingCardId !== 'undefined' && editingCardId) return;
     let maxNum = 0;
@@ -205,7 +185,6 @@ function initApp() {
     }
   };
 
-  // ── Notificações ──────────────────────────────────────────────
   window.renderNotifications = (notifs) => {
     const list = document.getElementById('notif-list');
     const badge = document.getElementById('notif-badge');
@@ -260,47 +239,44 @@ function initApp() {
     } catch (e) {}
   };
 
-// ── Timer de recarga de pacotes ───────────────────────────────
-const THREE_HOURS = 3 * 60 * 60 * 1000;
+  const THREE_HOURS = 3 * 60 * 60 * 1000;
 
-setInterval(() => {
-  const ud = window.userData;
-  const user = window.currentUser;
-  if (!user || !ud) return;
+  setInterval(() => {
+    const ud = window.userData;
+    const user = window.currentUser;
+    if (!user || !ud) return;
 
-  // Timer só atualiza o TEXTO do contador — nunca toca no Firestore
-  if ((ud.pullsAvailable || 0) < 5 && ud.lastPullTimestamp) {
-    let ts = ud.lastPullTimestamp;
-    if (ts?.toMillis) ts = ts.toMillis();
-    else if (ts?.seconds) ts = ts.seconds * 1000;
-    ts = Number(ts);
+    if ((ud.pullsAvailable || 0) < 5 && ud.lastPullTimestamp) {
+      let ts = ud.lastPullTimestamp;
+      if (ts?.toMillis) ts = ts.toMillis();
+      else if (ts?.seconds) ts = ts.seconds * 1000;
+      ts = Number(ts);
 
-    if (!ts || isNaN(ts) || ts > Date.now()) {
+      if (!ts || isNaN(ts) || ts > Date.now()) {
+        const timerContainer = document.getElementById('pull-timer-container');
+        if (timerContainer) timerContainer.classList.add('hidden');
+        return;
+      }
+
+      const timerContainer = document.getElementById('pull-timer-container');
+      const timerText = document.getElementById('pull-timer');
+      const largeTimer = document.getElementById('large-pull-timer');
+
+      if (timerContainer) timerContainer.classList.remove('hidden');
+
+      const timeLeft = THREE_HOURS - ((Date.now() - ts) % THREE_HOURS);
+      const h = Math.floor(timeLeft / (1000 * 60 * 60)).toString().padStart(2, '0');
+      const m = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+      const s = Math.floor((timeLeft % (1000 * 60)) / 1000).toString().padStart(2, '0');
+
+      if (timerText) timerText.innerText = `${h}h ${m}m ${s}s`;
+      if (largeTimer) largeTimer.innerText = `${h}h ${m}m ${s}s`;
+    } else {
       const timerContainer = document.getElementById('pull-timer-container');
       if (timerContainer) timerContainer.classList.add('hidden');
-      return;
     }
+  }, 1000);
 
-    const timerContainer = document.getElementById('pull-timer-container');
-    const timerText = document.getElementById('pull-timer');
-    const largeTimer = document.getElementById('large-pull-timer');
-
-    if (timerContainer) timerContainer.classList.remove('hidden');
-
-    const timeLeft = THREE_HOURS - ((Date.now() - ts) % THREE_HOURS);
-    const h = Math.floor(timeLeft / (1000 * 60 * 60)).toString().padStart(2, '0');
-    const m = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
-    const s = Math.floor((timeLeft % (1000 * 60)) / 1000).toString().padStart(2, '0');
-
-    if (timerText) timerText.innerText = `${h}h ${m}m ${s}s`;
-    if (largeTimer) largeTimer.innerText = `${h}h ${m}m ${s}s`;
-  } else {
-    const timerContainer = document.getElementById('pull-timer-container');
-    if (timerContainer) timerContainer.classList.add('hidden');
-  }
-}, 1000);
-
-  // ── Resetar área de pacotes após abrir ────────────────────────
   window.resetPackArea = () => {
     const revealedCards = document.getElementById('revealed-cards');
     const btnNext = document.getElementById('btn-next');
@@ -309,7 +285,6 @@ setInterval(() => {
     window.updateGachaUI();
   };
 
-  // ── Verificar se tier está completo (conquistas) ──────────────
   window.checkTierComplete = (tier) => {
     if (!window.cardDatabase?.length) return false;
     const inv = window.userData?.inventory || {};
@@ -323,7 +298,6 @@ setInterval(() => {
     return total > 0 && owned === total;
   };
 
-  // ── Sistema de Conquistas ─────────────────────────────────────
   window.renderAchievements = () => {
     const grid = document.getElementById('achievements-grid');
     if (!grid || !window.currentUser) return;
@@ -411,12 +385,16 @@ setInterval(() => {
   window.achievSelectedIndices = window.achievSelectedIndices || [];
   window.currentAchievType     = window.currentAchievType     || 'basic';
 
+  // ============================================================
+  // claimAchievement — chama a Cloud Function (seguro)
+  // ============================================================
   window.claimAchievement = async (achievId, type) => {
-    if (window.isOpeningAchiev) return; 
+    if (window.isOpeningAchiev) return;
 
     const ud = window.userData || {};
     const totalOpened = ud.totalPacksOpened || 0;
 
+    // Validação rápida no cliente (a CF valida novamente no servidor)
     if (achievId === 'tens') {
       const claimedTens = ud.claimedAchievements?.tens || 0;
       const maxTens = Math.floor(totalOpened / 10);
@@ -425,141 +403,101 @@ setInterval(() => {
       if (ud.claimedAchievements?.[achievId]) return;
     }
 
-    window.isOpeningAchiev = true; 
+    window.isOpeningAchiev = true;
     const btn = document.getElementById(`btn-claim-${achievId}`);
     if (btn) { btn.disabled = true; btn.innerText = "Processando..."; }
 
-    const newClaimed = { ...(ud.claimedAchievements || {}) };
-    if (achievId === 'tens') {
-      newClaimed.tens = (newClaimed.tens || 0) + 1;
-    } else {
-      newClaimed[achievId] = true;
-    }
-
     try {
-      const updateObj = { claimedAchievements: newClaimed };
+      const token    = await window.currentUser.getIdToken();
+      const response = await fetch(
+        `${window.CLOUD_FUNCTIONS_URL}/claimAchievement`,
+        {
+          method:  'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ achievId, type }),
+        }
+      );
 
-      if (achievId === 'first5') {
-        updateObj.pullsAvailable = increment(5);
-        await updateDoc(doc(db, "users", window.currentUser.uid), updateObj);
+      const json = await response.json();
+      if (!response.ok || json.error) {
+        throw new Error(json.error?.message || "Erro ao resgatar conquista.");
+      }
 
-        // Atualiza userData local — não espera onSnapshot (pode demorar 1-3s)
-        window.userData.claimedAchievements = newClaimed;
-        window.userData.pullsAvailable = (window.userData.pullsAvailable || 0) + 5;
+      const result = json.data;
 
-        window.isOpeningAchiev = false;  // libera para próximos claims
+      // Atualiza estado local imediatamente (sem esperar onSnapshot)
+      window.userData.claimedAchievements = result.newClaimed;
+
+      // Conquista de packs básicos: só mostra mensagem
+      if (result.type === 'basic_pulls') {
+        window.isOpeningAchiev = false;
         window.showMessage("Parabéns! Resgatou +5 Pacotes Básicos! Vá à aba Roleta para abri-los.");
         window.updateGachaUI();
         window.renderAchievements();
         return;
       }
 
-      const cards = window.cardDatabase;
-      if (!cards || cards.length === 0) throw new Error("Banco de cartas vazio.");
+      // Conquistas com cartas: prepara overlay igual ao pacote
+      window.currentAchievWonCards  = result.wonCards;
+      window.currentAchievMissedCards = result.missedCards;
+      window.achievRevealedCount    = 0;
+      window.achievSelectedIndices  = [];
+      window.currentAchievType      = result.type;
 
-      const getCard = (isPrem) => {
-        const TIER_VALUES = window.TIER_VALUES || { C: 1, B: 2, A: 3, S: 4, SS: 5 };
-        let tier = 'C';
-        if (isPrem) {
-          tier = Math.random() * 100 + 1 <= 90 ? 'S' : 'SS';
-        } else {
-          const r = Math.floor(Math.random() * 10000) + 1;
-          if (r <= 5600) tier = 'C';
-          else if (r <= 8600) tier = 'B';
-          else if (r <= 9630) tier = 'A';
-          else if (r <= 9980) tier = 'S';
-          else tier = 'SS';
-        }
-        let pool = cards.filter(c => c.tier === tier);
-        if (!pool.length) pool = cards;
-        return pool[Math.floor(Math.random() * pool.length)];
-      };
-
-      const isPremium = type === 'premium';
-      const generatedCards = Array.from({ length: 8 }, () => getCard(isPremium));
-      const shuffled = [...generatedCards].sort(() => 0.5 - Math.random());
-      const wonCards = [shuffled[0], shuffled[1]];
-      const missedCards = shuffled.slice(2);
-
-      const newInv = { ...(ud.inventory || {}) };
-      newInv[wonCards[0].id] = (newInv[wonCards[0].id] || 0) + 1;
-      newInv[wonCards[1].id] = (newInv[wonCards[1].id] || 0) + 1;
-      updateObj.inventory = newInv;
-
-      await updateDoc(doc(db, "users", window.currentUser.uid), updateObj);
-
-      // Atualiza userData local imediatamente após gravar no Firestore.
-      // Sem isso, a 2ª conquista leria claimedAchievements desatualizado
-      // do snapshot anterior enquanto o onSnapshot ainda não retornou.
-      window.userData.claimedAchievements = newClaimed;
-      window.userData.inventory = newInv;
-
-      window.currentAchievWonCards = wonCards;
-      window.currentAchievMissedCards = missedCards;
-      window.achievRevealedCount = 0;
-      window.achievSelectedIndices = [];    // Window scope, limpa o claim anterior
-      window.currentAchievType = type;      // Window scope, gacha.js lê daqui
-
-      if (window.logSystemAction) {
-        const c1 = wonCards[0], c2 = wonCards[1];
-        window.logSystemAction(`${window.currentUser.displayName} resgatou conquista "${achievId}" e obteve ${c1.name} (R.${c1.tier}) e ${c2.name} (R.${c2.tier}).`);
-      }
+      // Atualiza inventário local com as cartas ganhas
+      const wonIds = result.wonCards.map(c => c.id);
+      const inv = { ...(window.userData.inventory || {}) };
+      wonIds.forEach(id => { inv[id] = (inv[id] || 0) + 1; });
+      window.userData.inventory = inv;
 
       // Abre overlay do pacote de conquista
-      const overlay     = document.getElementById('achiev-pack-overlay');
-      const pack        = document.getElementById('achiev-booster-pack');
-      const revealed    = document.getElementById('achiev-revealed-cards');
-      const btnClose    = document.getElementById('btn-achiev-close');
-      const bgPremium   = document.getElementById('achiev-pack-bg');
-      const iconPremium = document.getElementById('achiev-pack-icon-premium');
-      const iconBasic   = document.getElementById('achiev-pack-icon-basic');
-      const label       = document.getElementById('achiev-pack-label');
-      const sublabel    = document.getElementById('achiev-pack-sublabel');
+      const overlay      = document.getElementById('achiev-pack-overlay');
+      const pack         = document.getElementById('achiev-booster-pack');
+      const revealed     = document.getElementById('achiev-revealed-cards');
+      const btnClose     = document.getElementById('btn-achiev-close');
+      const bgPremium    = document.getElementById('achiev-pack-bg');
+      const iconPremium  = document.getElementById('achiev-pack-icon-premium');
+      const iconBasic    = document.getElementById('achiev-pack-icon-basic');
+      const label        = document.getElementById('achiev-pack-label');
+      const sublabel     = document.getElementById('achiev-pack-sublabel');
       const overlayTitle = document.getElementById('achiev-overlay-title');
 
-      // Limpa grade de cartas do claim anterior antes de abrir novo overlay
       if (revealed) revealed.innerHTML = '';
 
-      if (isPremium && bgPremium && iconPremium && iconBasic && label && sublabel) {
+      const isPremium = result.type === 'premium';
+      if (isPremium && bgPremium) {
         pack.className = 'pack pack-premium glowing-premium cursor-pointer';
         bgPremium.classList.remove('hidden');
-        iconPremium.classList.remove('hidden');
-        iconBasic.classList.add('hidden');
-        label.innerText = "PREMIUM";
-        label.className = "block text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600 tracking-widest drop-shadow-[0_2px_2px_rgba(0,0,0,1)] z-10";
-        sublabel.innerText = "Pacote de Conquista";
-        sublabel.className = "block text-xs text-yellow-200 font-bold tracking-widest uppercase bg-black/50 px-2 py-1 rounded z-10";
-      } else if (!isPremium && bgPremium && iconPremium && iconBasic && label && sublabel) {
-        // Reseta visual para básico caso claim anterior fosse premium
+        if (iconPremium) iconPremium.classList.remove('hidden');
+        if (iconBasic)   iconBasic.classList.add('hidden');
+        if (label)    { label.innerText = "PREMIUM"; label.className = "block text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600 tracking-widest drop-shadow-[0_2px_2px_rgba(0,0,0,1)] z-10"; }
+        if (sublabel) { sublabel.innerText = "Pacote de Conquista"; sublabel.className = "block text-xs text-yellow-200 font-bold tracking-widest uppercase bg-black/50 px-2 py-1 rounded z-10"; }
+      } else if (!isPremium && bgPremium) {
         pack.className = 'pack cursor-pointer';
         bgPremium.classList.add('hidden');
-        iconPremium.classList.add('hidden');
-        iconBasic.classList.remove('hidden');
-        label.innerText = "NIN";
-        label.className = "block text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-green-300 to-green-600 tracking-widest drop-shadow-[0_2px_2px_rgba(0,0,0,1)] z-10";
-        sublabel.innerText = "Pacote Básico";
-        sublabel.className = "block text-xs text-gray-300 font-bold tracking-widest uppercase z-10";
+        if (iconPremium) iconPremium.classList.add('hidden');
+        if (iconBasic)   iconBasic.classList.remove('hidden');
+        if (label)    { label.innerText = "NIN"; label.className = "block text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-green-300 to-green-600 tracking-widest drop-shadow-[0_2px_2px_rgba(0,0,0,1)] z-10"; }
+        if (sublabel) { sublabel.innerText = "Pacote Básico"; sublabel.className = "block text-xs text-gray-300 font-bold tracking-widest uppercase z-10"; }
       }
 
-      // Remove 'tearing' que pode ter ficado do claim anterior
-      if (pack) { pack.classList.remove('hidden', 'tearing'); }
-      if (revealed) revealed.classList.add('hidden');
-      if (btnClose) btnClose.classList.add('hidden');
+      if (pack)         { pack.classList.remove('hidden', 'tearing'); }
+      if (revealed)     revealed.classList.add('hidden');
+      if (btnClose)     btnClose.classList.add('hidden');
       if (overlayTitle) { overlayTitle.innerText = "Abra a sua Recompensa!"; overlayTitle.classList.add('animate-pulse'); }
-      if (overlay) { overlay.classList.remove('hidden'); overlay.classList.add('flex'); }
+      if (overlay)      { overlay.classList.remove('hidden'); overlay.classList.add('flex'); }
 
       window.updateGachaUI();
       window.renderAchievements();
 
     } catch (e) {
       window.showMessage("Erro ao resgatar conquista: " + e.message);
-      window.isOpeningAchiev = false;  // Libera em caso de erro
+      window.isOpeningAchiev = false;
       if (btn) { btn.disabled = false; btn.innerText = "RESGATAR E ABRIR!"; }
     }
-    // NOTA: window.isOpeningAchiev só volta a false em closeAchievOverlay() (gacha.js)
+    // window.isOpeningAchiev volta a false em closeAchievOverlay() (gacha.js)
   };
 
-  // ── getUserMedals (versão original do código antigo) ──────────
   window.getUserMedals = (inventory) => {
     if (!inventory || !window.cardDatabase?.length) return '';
 
@@ -592,9 +530,9 @@ setInterval(() => {
 
 } // fim initApp
 
-// Aguarda Firebase estar pronto
 if (window._firebaseReady) {
   initApp();
 } else {
   window.addEventListener('firebase-ready', initApp, { once: true });
 }
+
