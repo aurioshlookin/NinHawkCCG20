@@ -688,18 +688,7 @@ tbody.appendChild(tr);
     };
 
     // ============================================================
-    // ANTI-HACK — FIX PRINCIPAL
-    // Problema original: "Nenhum jogador para analisar" porque
-    // window.ultimosResultadosScan ficava vazio.
-    // Causa raiz: a condição de filtro de admins usava
-    // u.displayNameLower para comparar com nomes fixos, mas
-    // esse campo pode não existir. Além disso, jogadores com
-    // scoreRisco === 0 e motivos vazios ERAM adicionados ao array
-    // mas a renderização anterior mostrava "Nenhum jogador" quando
-    // só havia jogadores limpos.
-    // FIX: todos os jogadores não-admin são listados. O campo
-    // displayNameLower é opcional — comparamos displayName também.
-    // Adicionamos filtro de risco no select para facilitar auditoria.
+    // ANTI-HACK
     // ============================================================
 
     window.escanearHackers = async () => {
@@ -720,7 +709,7 @@ tbody.appendChild(tr);
                 const nick = u.displayName || u.displayNameLower || 'Desconhecido';
                 const nickLower = (u.displayNameLower || nick).toLowerCase();
 
-                // Pula apenas admins confirmados — FIX: checar role E nomes protegidos
+                // Pula apenas admins confirmados — Checar role E nomes protegidos
                 if (u.role === 'admin') return;
                 if (nickLower === 'auriosh' || nickLower === 'vilao') return;
 
@@ -789,7 +778,7 @@ tbody.appendChild(tr);
                 if (scoreRisco >= 20 && scoreRisco < 70) statusBadge = `<span class="bg-yellow-900/50 text-yellow-400 border border-yellow-500/50 px-2 py-1 rounded text-xs font-bold">SUSPEITO</span>`;
                 if (scoreRisco >= 70) statusBadge = `<span class="bg-red-900/50 text-red-500 border border-red-500/50 px-3 py-1.5 rounded text-xs font-black animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]">RISCO ALTO</span>`;
 
-                // FIX: empurra TODOS os jogadores não-admin — inclusive os limpos
+                // Empurra TODOS os jogadores não-admin — inclusive os limpos
                 window.ultimosResultadosScan.push({
                     uid: docSnap.id,
                     nick,
@@ -826,7 +815,7 @@ tbody.appendChild(tr);
         }
     };
 
-    // FIX: função de filtro separada para aplicar sobre os resultados já escaneados
+    // Função de filtro separada para aplicar sobre os resultados já escaneados
     window.aplicarFiltroRisco = () => {
         const filterVal = document.getElementById('risk-filter')?.value || 'all';
         const tbody = document.getElementById('antihack-tbody');
