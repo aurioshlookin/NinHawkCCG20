@@ -817,13 +817,6 @@
 
     // ── URL das Cloud Functions ────────────────────────────────────────────
     window.CLOUD_FUNCTIONS_URL = 'https://us-central1-nincardcollectionbr.cloudfunctions.net';
-
-    // ── CORREÇÃO: dispara evento quando Firebase estiver 100% pronto ──────
-    // Scripts clássicos (auth.js, etc.) são síncronos e podem rodar antes
-    // do módulo ES terminar. O evento 'firebase-ready' garante a ordem certa.
-    // ── Expõe variáveis globais usadas pelos módulos JS ─────────────────
-    // Os arquivos em js/ usam db, auth, currentUser, userData como variáveis
-    // livres — precisam estar em window para funcionar como scripts clássicos.
     window.db   = db;
     window.auth = auth;
 
