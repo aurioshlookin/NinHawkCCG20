@@ -4,7 +4,7 @@
 
 let lastPullsAvailable = null;
 
-    const CLOUD_FUNCTIONS_URL = window.CLOUD_FUNCTIONS_URL || 'https://us-central1-nincardcollectionbr.cloudfunctions.net';
+    const CLOUD_FUNCTIONS_URL = window.CLOUD_FUNCTIONS_URL || 'https://southamerica-east1-nincardcollectionbr.cloudfunctions.net';
 
     window.promptOpenPack = (type) => {
       if (!currentUser || isOpeningPack || isProcessingPackTransaction) return;
