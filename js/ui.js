@@ -2,6 +2,20 @@
 // ui.js — Interface: tabs, menu mobile, sons, confetti
 // NÃO usa Firebase — pode ser carregado como script normal
 // ============================================================
+
+// Sanitização para valores dentro de atributos HTML (onclick, title, etc.)
+// DOMPurify cuida do innerHTML — esta função cuida dos atributos.
+function escAttr(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+    window.escAttr = escAttr;
     window.authMode = 'login';
     window.currentAlbumSort = 'tier-desc';
     window.currentAlbumView = 'grid';
