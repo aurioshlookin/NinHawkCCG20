@@ -173,28 +173,32 @@ window.loadAdminPlayersLog = async () => {
     players.forEach(p => {
       const roleColor = p.role === "admin" ? "text-red-400" : "text-gray-400";
       const safeName  = (p.displayName || "Desconhecido").replace(/'/g, "\\'");
-      list.innerHTML += `
-        <tr class="hover:bg-gray-700">
-          <td class="p-2 font-bold text-white">${p.displayName || "Desconhecido"}</td>
-          <td class="p-2 ${roleColor} font-bold">${p.role === "admin" ? "Admin" : "Jogador"}</td>
-          <td class="p-2 text-green-400 font-bold">
-            ${p.pullsAvailable || 0}
-            <div class="inline-flex gap-1 ml-2">
-              <button onclick="window.addPacksToUser('${p.uid}', '${safeName}', 'basic', 1, event)" class="bg-green-700 hover:bg-green-600 px-1.5 py-0.5 rounded text-white text-xs leading-none transition" title="Dar 1 Pacote Básico">+</button>
-              <button onclick="window.addPacksToUser('${p.uid}', '${safeName}', 'basic', -1, event)" class="bg-red-700 hover:bg-red-600 px-1.5 py-0.5 rounded text-white text-xs leading-none transition" title="Tirar 1 Pacote Básico">-</button>
-            </div>
-          </td>
-          <td class="p-2 text-yellow-400 font-bold">
-            ${p.premiumPullsAvailable || 0}
-            <div class="inline-flex gap-1 ml-2">
-              <button onclick="window.addPacksToUser('${p.uid}', '${safeName}', 'premium', 1, event)" class="bg-green-700 hover:bg-green-600 px-1.5 py-0.5 rounded text-white text-xs leading-none transition" title="Dar 1 Pacote Premium">+</button>
-              <button onclick="window.addPacksToUser('${p.uid}', '${safeName}', 'premium', -1, event)" class="bg-red-700 hover:bg-red-600 px-1.5 py-0.5 rounded text-white text-xs leading-none transition" title="Tirar 1 Pacote Premium">-</button>
-            </div>
-          </td>
-          <td class="p-2 text-blue-400 font-bold">${p.totalPacksOpened || 0}</td>
-          <td class="p-2 text-gray-400 text-xs">${p.lastTradeDate || "Nunca"}</td>
-        </tr>
-      `;
+      const safeDisplayName = DOMPurify.sanitize(p.displayName || "Desconhecido");
+      const safeUid         = escAttr(p.uid);
+      const safeNameAttr    = escAttr(p.displayName || "Desconhecido");
+
+list.innerHTML += `
+  <tr class="hover:bg-gray-700">
+    <td class="p-2 font-bold text-white">${safeDisplayName}</td>
+    <td class="p-2 ${roleColor} font-bold">${p.role === "admin" ? "Admin" : "Jogador"}</td>
+    <td class="p-2 text-green-400 font-bold">
+      ${p.pullsAvailable || 0}
+      <div class="inline-flex gap-1 ml-2">
+        <button onclick="window.addPacksToUser('${safeUid}', '${safeNameAttr}', 'basic', 1, event)" class="bg-green-700 hover:bg-green-600 px-1.5 py-0.5 rounded text-white text-xs leading-none transition" title="Dar 1 Pacote Básico">+</button>
+        <button onclick="window.addPacksToUser('${safeUid}', '${safeNameAttr}', 'basic', -1, event)" class="bg-red-700 hover:bg-red-600 px-1.5 py-0.5 rounded text-white text-xs leading-none transition" title="Tirar 1 Pacote Básico">-</button>
+      </div>
+    </td>
+    <td class="p-2 text-yellow-400 font-bold">
+      ${p.premiumPullsAvailable || 0}
+      <div class="inline-flex gap-1 ml-2">
+        <button onclick="window.addPacksToUser('${safeUid}', '${safeNameAttr}', 'premium', 1, event)" class="bg-green-700 hover:bg-green-600 px-1.5 py-0.5 rounded text-white text-xs leading-none transition" title="Dar 1 Pacote Premium">+</button>
+        <button onclick="window.addPacksToUser('${safeUid}', '${safeNameAttr}', 'premium', -1, event)" class="bg-red-700 hover:bg-red-600 px-1.5 py-0.5 rounded text-white text-xs leading-none transition" title="Tirar 1 Pacote Premium">-</button>
+      </div>
+    </td>
+    <td class="p-2 text-blue-400 font-bold">${p.totalPacksOpened || 0}</td>
+    <td class="p-2 text-gray-400 text-xs">${escAttr(p.lastTradeDate || "Nunca")}</td>
+  </tr>
+`;
     });
   } catch (e) {
     list.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-400">Erro: ${e.message}</td></tr>`;
@@ -481,15 +485,15 @@ window.renderRarityBoard = () => {
 
     const cardDisplayObj = hasCard ? card : { ...card, name: "???", desc: "???" };
 
-    wrapper.innerHTML = `
-      <div class="w-full aspect-[2/3] mb-2 pointer-events-none relative rounded-xl overflow-hidden shadow-lg">
-        <div id="rarity-card-${card.id}" class="w-full h-full"></div>
-      </div>
-      <div class="flex flex-col items-center w-full bg-black/40 p-1.5 rounded mt-auto">
-        <span class="text-xs font-black text-purple-400">${ownersCount} <span class="text-[9px] font-normal text-gray-400">ninjas têm</span></span>
-        <span class="text-[9px] text-gray-500">${pct}% do servidor</span>
-      </div>
-    `;
+wrapper.innerHTML = `
+  <div class="w-full aspect-[2/3] mb-2 pointer-events-none relative rounded-xl overflow-hidden shadow-lg">
+    <div id="rarity-card-${escAttr(card.id)}" class="w-full h-full"></div>
+  </div>
+  <div class="flex flex-col items-center w-full bg-black/40 p-1.5 rounded mt-auto">
+    <span class="text-xs font-black text-purple-400">${ownersCount} <span class="text-[9px] font-normal text-gray-400">ninjas têm</span></span>
+    <span class="text-[9px] text-gray-500">${pct}% do servidor</span>
+  </div>
+`;
 
     grid.appendChild(wrapper);
     window.renderCardHTML(`rarity-card-${card.id}`, cardDisplayObj, false, true, myInv);
