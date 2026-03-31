@@ -183,7 +183,7 @@ window.renderPlayersTable = () => {
         <td class="p-4 flex items-center gap-3 min-w-[200px]">
           ${rankMedal}
           <img src="${avatarSrc}" class="w-8 h-8 rounded-full border border-gray-600 bg-gray-800" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
-          <span class="font-bold text-white">${player.displayName || 'Ninja Oculto'}</span>
+          <span class="font-bold text-white">${DOMPurify.sanitize(player.displayName || 'Ninja Oculto')}</span>
           ${medalHTML ? `<div class="ml-1 cursor-help">${medalHTML}</div>` : ''}
         </td>
         <td class="p-4 text-center font-bold text-lg border-r border-gray-700">${stats.Total}</td>
