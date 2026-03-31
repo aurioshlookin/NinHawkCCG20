@@ -1,104 +1,109 @@
 // ============================================================
 // cards.js — Renderização visual de cartas
 // ============================================================
-    window.renderCardHTML = (elementId, cardData, showQuantity = false, isAlbum = false, sourceInventory = {}) => {
-      const container = document.getElementById(elementId);
-      if(!container) return;
-      
-      sourceInventory = sourceInventory || {};
-      const quantity = sourceInventory[cardData.id] || 0;
-      
-      const layout = cardData.layout || 'standard';
-      const isFullArt = layout === 'full-art';
-      
-      const zoom = cardData.imageZoom || 1;
-      const transX = cardData.imageTransX ?? 0;
-      const transY = cardData.imageTransY ?? 0;
-      
-      const imgStyle = `width: 100%; height: 100%; object-fit: contain; transform: translate(${transX}px, ${transY}px) scale(${zoom}); transform-origin: center;`;
+window.renderCardHTML = (elementId, cardData, showQuantity = false, isAlbum = false, sourceInventory = {}) => {
+  const container = document.getElementById(elementId);
+  if(!container) return;
+  
+  sourceInventory = sourceInventory || {};
+  const quantity = sourceInventory[cardData.id] || 0;
+  
+  const layout = cardData.layout || 'standard';
+  const isFullArt = layout === 'full-art';
+  
+  const zoom = cardData.imageZoom || 1;
+  const transX = cardData.imageTransX ?? 0;
+  const transY = cardData.imageTransY ?? 0;
+  
+  const imgStyle = `width: 100%; height: 100%; object-fit: contain; transform: translate(${transX}px, ${transY}px) scale(${zoom}); transform-origin: center;`;
 
-      const nameFontSize = cardData.nameFontSize ? `${cardData.nameFontSize}px` : (isFullArt ? '14px' : '12px');
-      const descFontSize = cardData.descFontSize ? `${cardData.descFontSize}px` : (isFullArt ? '10px' : '9px');
-      const nameStyle = `font-size: ${nameFontSize}; line-height: 1.1;`;
-      const descStyle = `font-size: ${descFontSize}; line-height: 1.2;`;
+  const nameFontSize = cardData.nameFontSize ? `${cardData.nameFontSize}px` : (isFullArt ? '14px' : '12px');
+  const descFontSize = cardData.descFontSize ? `${cardData.descFontSize}px` : (isFullArt ? '10px' : '9px');
+  const nameStyle = `font-size: ${nameFontSize}; line-height: 1.1;`;
+  const descStyle = `font-size: ${descFontSize}; line-height: 1.2;`;
 
-      const rankClasses = {
-        'C': 'border-green-400 bg-gradient-to-br from-green-900 to-black',
-        'B': 'border-blue-400 bg-gradient-to-br from-blue-900 to-black',
-        'A': 'border-purple-400 bg-gradient-to-br from-purple-900 to-black',
-        'S': 'border-yellow-400 bg-gradient-to-br from-yellow-900 to-black',
-        'SS': 'border-red-500 bg-gradient-to-br from-red-900 to-black'
-      };
-      
-      const tierColorText = {
-        'C': 'text-green-400', 'B': 'text-blue-400', 'A': 'text-purple-400', 'S': 'text-yellow-400', 'SS': 'text-red-500'
-      };
-
-      if (isAlbum) container.className = `w-full h-full rounded-xl border-4 border-solid text-white relative overflow-hidden shadow-inner ${rankClasses[cardData.tier]}`;
-      else container.className = `card-front flex flex-col justify-between rounded-xl border-4 border-solid relative overflow-hidden ${rankClasses[cardData.tier]}`;
-
-      const fullImageUrl = cardData.img ? (GITHUB_RAW_URL + cardData.img) : '';
-      const collectionText = `${cardData.cardVersion || 'V1'} • #${cardData.cardNumber || '000'}`;
-
-      let foilEffect = '';
-      if(cardData.tier === 'S') foilEffect = '<div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent mix-blend-overlay pointer-events-none z-20"></div>';
-      if(cardData.tier === 'SS') foilEffect = '<div class="absolute inset-0 foil-anim mix-blend-color-dodge opacity-60 pointer-events-none z-20"></div>';
-
-      let contentHTML = '';
-
-      if(isFullArt) {
-        contentHTML = `
-          ${foilEffect}
-          <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center">
-            <img src="${fullImageUrl}" style="${imgStyle}">
-          </div>
-          <div class="absolute top-1 left-1 right-1 z-10 flex justify-between pointer-events-none">
-            <span class="font-black text-xs bg-black/80 px-1.5 py-0.5 rounded border border-gray-600 ${tierColorText[cardData.tier]} shadow-md">R.${cardData.tier}</span>
-          </div>
-          <div class="absolute bottom-0 left-0 right-0 p-2 sm:p-3 bg-gradient-to-t from-black via-black/80 to-transparent z-10 pointer-events-none pb-4 sm:pb-5">
-            <h3 class="font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]" style="${nameStyle}">${cardData.name}</h3>
-            <p class="text-gray-300 italic mt-0.5 leading-tight line-clamp-3" style="${descStyle}">${cardData.desc}</p>
-          </div>
-          <div class="absolute bottom-1 left-1 z-10 pointer-events-none">
-            <span class="text-[7px] sm:text-[9px] text-gray-300 font-bold bg-black/50 px-1 rounded">${collectionText}</span>
-          </div>
-          ${showQuantity && quantity > 1 ? `<div class="absolute top-1 right-1 bg-green-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow-lg border border-green-400 z-40 pointer-events-none">x${quantity}</div>` : ''}
-        `;
-      } else {
-        contentHTML = `
-          ${foilEffect}
-          <div class="relative z-10 p-1 sm:p-2 h-full flex flex-col pointer-events-none">
-            <div class="flex justify-between items-center mb-1">
-              <h3 class="font-bold text-white drop-shadow-md truncate max-w-[70%]" style="${nameStyle}">${cardData.name}</h3>
-              <span class="font-black text-[10px] sm:text-xs ${tierColorText[cardData.tier]} bg-black/60 px-1 rounded shadow-md">R.${cardData.tier}</span>
-            </div>
-            
-            <div class="w-full aspect-[4/3] bg-black border-2 border-gray-500 overflow-hidden shadow-inner flex-shrink-0 rounded flex items-center justify-center">
-              <img src="${fullImageUrl}" style="${imgStyle}">
-            </div>
-            
-            <div class="flex-grow mt-1 sm:mt-1.5 bg-black/40 p-1 sm:p-1.5 rounded border border-white/20 overflow-hidden text-center flex flex-col items-center justify-center relative">
-              <p class="text-gray-200 italic leading-tight line-clamp-4" style="${descStyle}">${cardData.desc}</p>
-            </div>
-            
-            <div class="mt-0.5 text-left pointer-events-none">
-              <span class="text-[7px] sm:text-[9px] text-gray-400 font-bold">${collectionText}</span>
-            </div>
-
-            ${showQuantity && quantity > 1 ? `<div class="absolute bottom-1 right-1 bg-green-600 text-white text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded-full shadow-lg border border-green-400 z-40">x${quantity}</div>` : ''}
-          </div>
-        `;
-      }
-      container.innerHTML = contentHTML;
-        const imgs = container.querySelectorAll("img");
-
-imgs.forEach(img => {
-  img.onerror = () => {
-    img.onerror = null;
-    img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%23374151'/%3E%3Ctext x='75' y='80' text-anchor='middle' fill='%236b7280' font-size='11' font-family='sans-serif'%3ESem Imagem%3C/text%3E%3C/svg%3E";
+  const rankClasses = {
+    'C': 'border-green-400 bg-gradient-to-br from-green-900 to-black',
+    'B': 'border-blue-400 bg-gradient-to-br from-blue-900 to-black',
+    'A': 'border-purple-400 bg-gradient-to-br from-purple-900 to-black',
+    'S': 'border-yellow-400 bg-gradient-to-br from-yellow-900 to-black',
+    'SS': 'border-red-500 bg-gradient-to-br from-red-900 to-black'
   };
-});
+  
+  const tierColorText = {
+    'C': 'text-green-400', 'B': 'text-blue-400', 'A': 'text-purple-400', 'S': 'text-yellow-400', 'SS': 'text-red-500'
+  };
+
+  if (isAlbum) container.className = `w-full h-full rounded-xl border-4 border-solid text-white relative overflow-hidden shadow-inner ${rankClasses[cardData.tier]}`;
+  else container.className = `card-front flex flex-col justify-between rounded-xl border-4 border-solid relative overflow-hidden ${rankClasses[cardData.tier]}`;
+
+  const fullImageUrl = cardData.img ? (GITHUB_RAW_URL + cardData.img) : '';
+  const collectionText = `${escAttr(cardData.cardVersion || 'V1')} • #${escAttr(cardData.cardNumber || '000')}`;
+
+  // ↓ SANITIZAÇÃO: nome e descrição escapados antes de entrar no HTML
+  const safeName = DOMPurify.sanitize(cardData.name || '');
+  const safeDesc = DOMPurify.sanitize(cardData.desc || '');
+  const safeTier = escAttr(cardData.tier);
+
+  let foilEffect = '';
+  if(cardData.tier === 'S') foilEffect = '<div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent mix-blend-overlay pointer-events-none z-20"></div>';
+  if(cardData.tier === 'SS') foilEffect = '<div class="absolute inset-0 foil-anim mix-blend-color-dodge opacity-60 pointer-events-none z-20"></div>';
+
+  let contentHTML = '';
+
+  if(isFullArt) {
+    contentHTML = `
+      ${foilEffect}
+      <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center">
+        <img src="${fullImageUrl}" style="${imgStyle}">
+      </div>
+      <div class="absolute top-1 left-1 right-1 z-10 flex justify-between pointer-events-none">
+        <span class="font-black text-xs bg-black/80 px-1.5 py-0.5 rounded border border-gray-600 ${tierColorText[cardData.tier]} shadow-md">R.${safeTier}</span>
+      </div>
+      <div class="absolute bottom-0 left-0 right-0 p-2 sm:p-3 bg-gradient-to-t from-black via-black/80 to-transparent z-10 pointer-events-none pb-4 sm:pb-5">
+        <h3 class="font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]" style="${nameStyle}">${safeName}</h3>
+        <p class="text-gray-300 italic mt-0.5 leading-tight line-clamp-3" style="${descStyle}">${safeDesc}</p>
+      </div>
+      <div class="absolute bottom-1 left-1 z-10 pointer-events-none">
+        <span class="text-[7px] sm:text-[9px] text-gray-300 font-bold bg-black/50 px-1 rounded">${collectionText}</span>
+      </div>
+      ${showQuantity && quantity > 1 ? `<div class="absolute top-1 right-1 bg-green-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow-lg border border-green-400 z-40 pointer-events-none">x${quantity}</div>` : ''}
+    `;
+  } else {
+    contentHTML = `
+      ${foilEffect}
+      <div class="relative z-10 p-1 sm:p-2 h-full flex flex-col pointer-events-none">
+        <div class="flex justify-between items-center mb-1">
+          <h3 class="font-bold text-white drop-shadow-md truncate max-w-[70%]" style="${nameStyle}">${safeName}</h3>
+          <span class="font-black text-[10px] sm:text-xs ${tierColorText[cardData.tier]} bg-black/60 px-1 rounded shadow-md">R.${safeTier}</span>
+        </div>
+        
+        <div class="w-full aspect-[4/3] bg-black border-2 border-gray-500 overflow-hidden shadow-inner flex-shrink-0 rounded flex items-center justify-center">
+          <img src="${fullImageUrl}" style="${imgStyle}">
+        </div>
+        
+        <div class="flex-grow mt-1 sm:mt-1.5 bg-black/40 p-1 sm:p-1.5 rounded border border-white/20 overflow-hidden text-center flex flex-col items-center justify-center relative">
+          <p class="text-gray-200 italic leading-tight line-clamp-4" style="${descStyle}">${safeDesc}</p>
+        </div>
+        
+        <div class="mt-0.5 text-left pointer-events-none">
+          <span class="text-[7px] sm:text-[9px] text-gray-400 font-bold">${collectionText}</span>
+        </div>
+
+        ${showQuantity && quantity > 1 ? `<div class="absolute bottom-1 right-1 bg-green-600 text-white text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded-full shadow-lg border border-green-400 z-40">x${quantity}</div>` : ''}
+      </div>
+    `;
+  }
+  container.innerHTML = contentHTML;
+
+  const imgs = container.querySelectorAll("img");
+  imgs.forEach(img => {
+    img.onerror = () => {
+      img.onerror = null;
+      img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%23374151'/%3E%3Ctext x='75' y='80' text-anchor='middle' fill='%236b7280' font-size='11' font-family='sans-serif'%3ESem Imagem%3C/text%3E%3C/svg%3E";
     };
+  });
+};
 
     window.showCardDetail = (cardId) => {
       if (!window.cardDatabase) return;
