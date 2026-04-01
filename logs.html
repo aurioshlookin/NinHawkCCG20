@@ -257,6 +257,8 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    window.CLOUD_FUNCTIONS_URL = 'https://southamerica-east1-nincardcollectionbr.cloudfunctions.net';
+
     window.allLogs = [];
     window.filteredLogs = [];
     window.currentFilter = 'all';
@@ -544,6 +546,19 @@
       btnNext.disabled = window.currentPage === totalPages;
     };
 
+    // Helper para chamar Cloud Functions do Admin
+    async function callAdminCF(endpoint, body) {
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(`${window.CLOUD_FUNCTIONS_URL}/${endpoint}`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const json = await response.json();
+      if (!response.ok || json.error) throw new Error(json.error?.message || json.error || "Erro desconhecido");
+      return json.data;
+    }
+
     window.darBoostGlobal = (tipo) => {
       window.mostrarModalConfirmacao(
         "Ação Global no Servidor",
@@ -556,35 +571,10 @@
           btn.innerHTML = `<span class="animate-spin text-xl">⏳</span> Processando ninjas...`;
 
           try {
-            const usersSnap = await getDocs(collection(db, "users"));
-            if (usersSnap.empty) throw new Error("Nenhum usuário encontrado no banco de dados.");
-
-            const batches = [];
-            let currentBatch = writeBatch(db);
-            let count = 0;
-
-            usersSnap.forEach(docSnap => {
-              const atualizacao = tipo === 'comum' 
-                ? { pullsAvailable: increment(1) } 
-                : { premiumPullsAvailable: increment(1) };
-              currentBatch.update(docSnap.ref, atualizacao);
-              count++;
-              if (count === 490) { 
-                batches.push(currentBatch.commit());
-                currentBatch = writeBatch(db);
-                count = 0;
-              }
-            });
-
-            if (count > 0) batches.push(currentBatch.commit());
-            await Promise.all(batches);
-
-            await addDoc(collection(db, "system_logs"), {
-              action: `Admin ${auth.currentUser.displayName} enviou um Boost Global de +1 Pacote ${tipo.toUpperCase()} para ${usersSnap.docs.length} jogadores!`,
-              timestamp: new Date()
-            });
-
-            window.mostrarToast(`Sucesso! Pacotes distribuídos para ${usersSnap.docs.length} ninjas.`, "sucesso");
+            const payload = { type: tipo === 'comum' ? 'basic' : 'premium', amount: 1 };
+            // Aproveitamos a mesma função que já existia antes do admin
+            const result = await callAdminCF('adminSendPacksToAll', payload);
+            window.mostrarToast(`Sucesso! Pacotes distribuídos para ${result.totalAffected} ninjas.`, "sucesso");
           } catch (error) {
             window.mostrarToast(`Erro ao enviar: ${error.message}`, "erro");
           } finally {
@@ -613,47 +603,9 @@
                 if(btn) { btn.disabled = true; btn.innerHTML = `<span class="animate-spin text-xl">⏳</span> Executando...`; }
 
                 try {
-                    const usersRef = collection(db, "users");
-                    const q = query(usersRef, where("displayNameLower", "==", nickLower));
-                    const querySnapshot = await getDocs(q);
+                    await callAdminCF('adminBanPlayer', { nick: nickLower });
 
-                    if (querySnapshot.empty) throw new Error(`Jogador "${nick}" não encontrado. Verifique a ortografia.`);
-
-                    const userDoc = querySnapshot.docs[0];
-                    const uid = userDoc.id;
-                    const userData = userDoc.data();
-                    const userIp = userData.ip || 'unknown';
-
-                    await setDoc(doc(db, "banned_users", uid), {
-                        ...userData,
-                        bannedAt: new Date().getTime(),
-                        bannedBy: auth.currentUser.displayName,
-                        reason: "Banimento por IP / Auditoria Manual"
-                    });
-
-                    if (userIp !== 'unknown') {
-                        await setDoc(doc(db, "banned_ips", userIp), {
-                            timestamp: new Date(),
-                            bannedBy: auth.currentUser.displayName,
-                            bannedNick: userData.displayName,
-                            reason: "Banimento Administrativo Manual via Auditoria"
-                        });
-                    } else {
-                        window.mostrarModalInfo("Aviso", `O IP de "${userData.displayName}" é desconhecido. A conta será apagada (com backup), mas ele poderá criar outra conta.`);
-                    }
-
-                    await deleteDoc(doc(db, "users", uid));
-
-                    try {
-                        await updateDoc(doc(db, "community", "leaderboard"), { [`players.${uid}`]: deleteField() });
-                    } catch (err) { console.warn("Placar não atualizado.", err); }
-
-                    await addDoc(collection(db, "system_logs"), {
-                        action: `Admin ${auth.currentUser.displayName} BANIU o jogador ${userData.displayName} por IP e gerou um BACKUP de segurança.`,
-                        timestamp: new Date()
-                    });
-
-                    window.mostrarToast(`A justiça foi feita! Conta "${userData.displayName}" banida e salva no backup.`, "sucesso");
+                    window.mostrarToast(`A justiça foi feita! Conta banida e salva no backup.`, "sucesso");
                     if(input) input.value = ""; 
                     if(document.getElementById('section-antihack').classList.contains('flex')) window.escanearHackers(); 
 
@@ -884,19 +836,9 @@
             `Isso vai ZERAR completamente a contagem de pacotes Básicos e Premium da conta de "${nick}".\nAs cartas do álbum permanecerão intactas.\n\nDeseja aplicar a punição agora?`,
             async () => {
                 try {
-                    await updateDoc(doc(db, "users", uid), {
-                        pullsAvailable: 0,
-                        premiumPullsAvailable: 0
-                    });
-
-                    await addDoc(collection(db, "system_logs"), {
-                        action: `Admin ${auth.currentUser.displayName} ZEROU OS RECURSOS (Pacotes) do jogador ${nick} por atividade suspeita detectada no Scanner.`,
-                        timestamp: new Date()
-                    });
-
+                    await callAdminCF('adminZeroResources', { targetUid: uid });
                     window.mostrarToast(`Pacotes da conta ${nick} foram zerados!`, "sucesso");
                     window.escanearHackers(); 
-
                 } catch (error) {
                     window.mostrarToast("Erro ao zerar recursos: " + error.message, "erro");
                 }
@@ -914,65 +856,9 @@
             `TEM CERTEZA? Isso criará um backup de segurança e removerá todas as cartas, progresso, fusões e moedas da conta do jogador "${nick}".`,
             async () => {
                 try {
-                    const userRef = doc(db, "users", uid);
-                    const userSnap = await getDoc(userRef);
-
-                    if (!userSnap.exists()) {
-                        return window.mostrarToast("Usuário não encontrado no banco de dados.", "erro");
-                    }
-
-                    const userData = userSnap.data();
-                    const timestamp = new Date().toISOString();
-
-                    // 1. Criar o Backup na coleção 'backups_accounts'
-                    const backupId = `${uid}_${timestamp}`;
-                    const backupRef = doc(db, "backups_accounts", backupId);
-                    
-                    await setDoc(backupRef, {
-                        ...userData,
-                        _backupMetadata: {
-                            originalUid: uid,
-                            date: timestamp,
-                            reason: "Admin Manual Reset (Logs Panel)",
-                            adminUid: auth.currentUser ? auth.currentUser.uid : "unknown"
-                        }
-                    });
-
-                    // 2. Aplicar o Estado Inicial (Vazio/Novo) mantendo as informações base
-                    const defaultState = {
-                        uid: uid,
-                        displayName: userData.displayName || "Jogador",
-                        email: userData.email || "",
-                        photoURL: userData.photoURL || "",
-                        role: userData.role || "player",
-                        pullsAvailable: 5,
-                        premiumPullsAvailable: 0,
-                        inventory: {},
-                        tradesToday: 0,
-                        lastTradeDate: "",
-                        lastPullTimestamp: null,
-                        totalPacksOpened: 0,
-                        totalTradesCompleted: 0,
-                        claimedAchievements: {},
-                        notifications: [{
-                            title: "Sua conta foi redefinida",
-                            desc: "Um administrador zerou o seu progresso. Seus dados antigos foram salvos em um backup de segurança.",
-                            date: new Date().toISOString(),
-                            read: false
-                        }],
-                        createdAt: userData.createdAt || new Date()
-                    };
-
-                    await setDoc(userRef, defaultState);
-
-                    await addDoc(collection(db, "system_logs"), {
-                        action: `Admin ${auth.currentUser.displayName} ZEROU A CONTA do jogador ${nick} (Backup ID: ${backupId}).`,
-                        timestamp: new Date()
-                    });
-                    
+                    await callAdminCF('adminResetAccount', { targetUid: uid });
                     window.mostrarToast(`Conta zerada com sucesso! Backup criado.`, "sucesso");
                     window.escanearHackers();
-
                 } catch (error) {
                     console.error("Erro ao resetar conta:", error);
                     window.mostrarToast("Erro ao processar o reset: " + error.message, "erro");
@@ -983,6 +869,7 @@
 
     window.restoreAccountBackup = async (uid, nick) => {
         try {
+            // Essa leitura é permitida pois ajustamos no firestore.rules para o Admin
             const backupsRef = collection(db, "backups_accounts");
             const querySnapshot = await getDocs(backupsRef);
             
@@ -1023,17 +910,7 @@
                     try {
                         const selectedBackup = userBackups[selectedIndex];
                         
-                        // Retirar a tag de metadado do backup antes de devolver para a pasta "users"
-                        const dataToRestore = { ...selectedBackup.data };
-                        delete dataToRestore._backupMetadata;
-
-                        const userRef = doc(db, "users", uid);
-                        await setDoc(userRef, dataToRestore);
-
-                        await addDoc(collection(db, "system_logs"), {
-                            action: `Admin ${auth.currentUser.displayName} RESTAUROU UM BACKUP da conta do jogador ${nick}.`,
-                            timestamp: new Date()
-                        });
+                        await callAdminCF('adminRestoreAccount', { targetUid: uid, backupId: selectedBackup.id });
                         
                         window.mostrarToast("Conta restaurada com sucesso a partir do backup antigo!", "sucesso");
                         window.escanearHackers();
