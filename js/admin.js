@@ -24,6 +24,34 @@ async function callAdminCF(endpoint, body) {
   return json.data;
 }
 
+// ── Lógica de Numeração Automática (BR1-001, etc) ─────────────
+window.suggestNextCardNumber = () => {
+  if (editingCardId) return; // Não mudar numeração automaticamente se estiver editando uma carta antiga
+  
+  const versionSelect = document.getElementById("admin-card-version");
+  const numberInput = document.getElementById("admin-card-number");
+  if (!versionSelect || !numberInput || !window.cardDatabase) return;
+
+  const version = versionSelect.value || "BR1";
+  const cardsInVersion = window.cardDatabase.filter(c => c.cardVersion === version);
+
+  let maxNum = 0;
+  cardsInVersion.forEach(c => {
+    // Pega apenas a parte numérica do final da string (ex: "BR2-015" extrai "015")
+    const match = String(c.cardNumber).match(/\d+$/);
+    if (match) {
+      const num = parseInt(match[0], 10);
+      if (num > maxNum) maxNum = num;
+    }
+  });
+
+  // Incrementa 1 e formata com 3 zeros. Adiciona o prefixo da coleção.
+  const nextNum = String(maxNum + 1).padStart(3, '0');
+  numberInput.value = `${version}-${nextNum}`;
+  
+  if (window.updateAdminPreview) window.updateAdminPreview();
+};
+
 // ── Carregamento do banco de cartas ───────────────────────────
 window.loadCardsCache = async () => {
   try {
@@ -45,6 +73,17 @@ window.loadCardsCache = async () => {
       localStorage.setItem("nin_cards_version", currentVersion);
       if (window.updateAllCardDependentUI) window.updateAllCardDependentUI();
     }
+
+    // Adiciona listener para recalcular o número automaticamente quando mudar a coleção
+    const versionSelect = document.getElementById("admin-card-version");
+    if (versionSelect && !versionSelect.hasAttribute('data-listener')) {
+      versionSelect.addEventListener("change", window.suggestNextCardNumber);
+      versionSelect.setAttribute('data-listener', 'true');
+    }
+
+    // Sugere o número da próxima carta assim que carregar o banco
+    if (!editingCardId) window.suggestNextCardNumber();
+
   } catch (err) { console.error("Erro ao carregar cartas:", err); }
 };
 
@@ -127,6 +166,7 @@ window.deleteCard = (id, name) => {
       localStorage.removeItem("nin_cards_cache");
       localStorage.removeItem("nin_cards_version");
       if (window.loadCardsCache) window.loadCardsCache();
+      if (window.suggestNextCardNumber) window.suggestNextCardNumber();
     } catch (err) {
       window.showMessage("Erro ao excluir carta: " + err.message);
     }
@@ -235,22 +275,25 @@ window.loadGitHubImages = async () => {
     grid.innerHTML = "";
     loading.classList.add("hidden");
 
-    if (images.length === 0) { emptyMsg.classList.remove("hidden"); return; }
+    // Remove da visualização do GitHub as imagens que já foram convertidas em cartas
+    // (A menos que seja a imagem da carta que estamos editando neste exato momento)
+    const availableImages = images.filter(file => !usedImages.includes(file.name) || file.name === currentSelected);
 
-    images.forEach(file => {
-      const isUsed = usedImages.includes(file.name);
+    if (availableImages.length === 0) { emptyMsg.classList.remove("hidden"); return; }
+
+    availableImages.forEach(file => {
+      const isEditingThis = currentSelected === file.name;
       const imgDiv = document.createElement("div");
       imgDiv.className = "cursor-pointer rounded border-2 border-transparent hover:border-green-400 transition overflow-hidden h-24 bg-gray-800 relative group";
       imgDiv.onclick = () => window.selectAdminImage(file.name, imgDiv);
 
-      if (currentSelected === file.name) {
+      if (isEditingThis) {
         imgDiv.classList.remove("border-transparent");
         imgDiv.classList.add("border-green-500", "ring-2", "ring-green-400");
       }
 
       imgDiv.innerHTML = `
-        <img src="${file.download_url}" class="w-full h-full object-cover group-hover:scale-110 transition duration-300 ${isUsed ? "opacity-60" : ""}" loading="lazy">
-        ${isUsed ? `<div class="absolute top-1 right-1 bg-red-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold">USADA</div>` : ""}
+        <img src="${file.download_url}" class="w-full h-full object-cover group-hover:scale-110 transition duration-300" loading="lazy">
         <div class="absolute bottom-0 left-0 right-0 bg-black/80 text-[10px] text-center truncate px-1 py-0.5 text-white font-semibold">${file.name}</div>
       `;
       grid.appendChild(imgDiv);
@@ -290,8 +333,8 @@ window.updateAdminPreview = () => {
   const tempCard = {
     id: "preview",
     name:        document.getElementById("admin-name")?.value || "Nome da Carta",
-    cardNumber:  document.getElementById("admin-card-number")?.value || "001",
-    cardVersion: document.getElementById("admin-card-version")?.value || "Vol. 1",
+    cardNumber:  document.getElementById("admin-card-number")?.value || "BR1-001",
+    cardVersion: document.getElementById("admin-card-version")?.value || "BR1",
     tier:        document.getElementById("admin-tier")?.value || "C",
     layout:      layoutVal,
     desc:        document.getElementById("admin-desc")?.value || "Descrição...",
@@ -314,7 +357,7 @@ window.editCard = (id) => {
 
   const set = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val; };
   set("admin-name",         card.name);
-  set("admin-card-number",  card.cardNumber || "000");
+  set("admin-card-number",  card.cardNumber || "BR1-000");
   set("admin-tier",         card.tier);
   set("admin-layout",       card.layout || "standard");
   set("admin-desc",         card.desc);
@@ -326,7 +369,7 @@ window.editCard = (id) => {
   if (versionSelect) {
     const exists = Array.from(versionSelect.options).some(opt => opt.value === card.cardVersion);
     if (!exists && card.cardVersion) versionSelect.add(new Option(card.cardVersion, card.cardVersion));
-    versionSelect.value = card.cardVersion || "Vol. 1";
+    versionSelect.value = card.cardVersion || "BR1";
   }
 
   window.adminCardState = { transX: card.imageTransX ?? 0, transY: card.imageTransY ?? 0 };
@@ -353,6 +396,9 @@ window.cancelEdit = () => {
   set("admin-zoom",      1);
   set("admin-name-size", 12);
   set("admin-desc-size", 9);
+
+  const versionSelect = document.getElementById("admin-card-version");
+  if (versionSelect) versionSelect.value = "BR1";
 
   window.adminCardState = { transX: 0, transY: 0 };
 
@@ -425,14 +471,16 @@ if (adminFormGlobal) {
           child.classList.remove("border-green-500", "ring-2");
           child.classList.add("border-transparent");
         });
+        
+        // Invalida cache local E recarrega logo após a criação (para não sugerir mesmo número)
+        localStorage.removeItem("nin_cards_cache");
+        localStorage.removeItem("nin_cards_version");
+        if (window.loadCardsCache) await window.loadCardsCache();
+
         if (window.suggestNextCardNumber) window.suggestNextCardNumber();
         if (window.updateAdminPreview)    window.updateAdminPreview();
+        if (window.loadGitHubImages)      window.loadGitHubImages();
       }
-
-      // Invalida cache e recarrega
-      localStorage.removeItem("nin_cards_cache");
-      localStorage.removeItem("nin_cards_version");
-      if (window.loadCardsCache) window.loadCardsCache();
 
     } catch (error) {
       msg.innerText = "Erro: " + error.message;
