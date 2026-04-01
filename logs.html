@@ -17,6 +17,10 @@
     }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; border-radius: 20px; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col relative">
@@ -40,6 +44,20 @@
           <div class="flex justify-end gap-3">
               <button onclick="document.getElementById('confirm-modal').classList.add('hidden'); document.getElementById('confirm-modal').classList.remove('flex');" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-bold transition">Cancelar</button>
               <button id="confirm-modal-btn" class="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg font-bold transition shadow-lg shadow-red-900/30">Confirmar Ação</button>
+          </div>
+      </div>
+  </div>
+
+  <!-- MODAL DE SELEÇÃO DE BACKUP -->
+  <div id="backup-modal" class="fixed inset-0 bg-slate-900/80 z-[110] hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
+      <div class="bg-slate-800 border border-slate-600 p-6 rounded-xl shadow-2xl max-w-2xl w-full">
+          <h3 class="text-xl font-bold text-yellow-500 mb-2 flex items-center gap-2"><span>🔄</span> Restaurar Backup</h3>
+          <p id="backup-modal-desc" class="text-slate-300 mb-4 text-sm"></p>
+          <div id="backup-list-container" class="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-2 mb-6 custom-scrollbar">
+              <!-- Backups list injected here -->
+          </div>
+          <div class="flex justify-end">
+              <button onclick="document.getElementById('backup-modal').classList.add('hidden'); document.getElementById('backup-modal').classList.remove('flex');" class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-2 rounded-lg font-bold transition shadow-lg">Cancelar</button>
           </div>
       </div>
   </div>
@@ -381,7 +399,7 @@
       if (lower.includes('admin') || lower.includes('criou uma nova carta') || lower.includes('atualizou a carta') || lower.includes('deletou') || lower.includes('renumerou')) {
         return { id: 'admin', label: 'Admin', badge: 'bg-red-500/20 text-red-400 border-red-500/50' };
       }
-      if (lower.includes('nova conta') || lower.includes('registrou') || lower.includes('baniu') || lower.includes('zerou a conta') || lower.includes('restaurou')) {
+      if (lower.includes('nova conta') || lower.includes('registrou') || lower.includes('baniu') || lower.includes('zerou a conta') || lower.includes('restaurou') || lower.includes('desbaniu')) {
         return { id: 'account', label: 'Conta/Ban', badge: 'bg-green-500/20 text-green-400 border-green-500/50' };
       }
       if (lower.includes('pacote') || lower.includes('boost') || lower.includes('escolheu e guardou as cartas')) {
@@ -496,6 +514,7 @@
         formattedAction = formattedAction.replace(/(Boost Global|Boost Comum|Boost Premium)/gi, '<strong class="text-blue-400 font-black uppercase">$1</strong>');
         formattedAction = formattedAction.replace(/(Admin)/g, '<strong class="text-red-400">$1</strong>');
         formattedAction = formattedAction.replace(/(BANIU)/g, '<strong class="text-red-500 font-black drop-shadow-md text-lg">$1</strong>');
+        formattedAction = formattedAction.replace(/(DESBANIU)/g, '<strong class="text-green-500 font-black drop-shadow-md text-lg">$1</strong>');
         formattedAction = formattedAction.replace(/(ZEROU A CONTA)/g, '<strong class="text-red-400 font-black drop-shadow-md">$1</strong>');
         formattedAction = formattedAction.replace(/(RESTAUROU)/g, '<strong class="text-yellow-400 font-black drop-shadow-md">$1</strong>');
         formattedAction = formattedAction.replace(/\(R\.SS\)/g, '%%RANK_SS%%');
@@ -613,6 +632,22 @@
                     window.mostrarToast(error.message, "erro");
                 } finally {
                     if(btn) { btn.disabled = false; btn.innerHTML = "🔨 Banir IP e Deletar Conta"; }
+                }
+            }
+        );
+    };
+
+    window.desbanirConta = (uid, nick) => {
+        window.mostrarModalConfirmacao(
+            "Remover Banimento",
+            `Você está prestes a remover o banimento da conta de "${nick}" e de seu IP associado. A conta do jogador será restaurada automaticamente.\n\nDeseja continuar?`,
+            async () => {
+                try {
+                    await callAdminCF('adminUnbanPlayer', { targetUid: uid });
+                    window.mostrarToast(`A conta de ${nick} foi desbanida com sucesso!`, "sucesso");
+                    window.escanearHackers(); 
+                } catch (error) {
+                    window.mostrarToast("Erro ao desbanir conta: " + error.message, "erro");
                 }
             }
         );
@@ -831,7 +866,8 @@
             if (p.isBanned) {
                 botoesAcao = `<span class="text-xs text-red-400 font-bold px-2 py-1 bg-red-900/20 rounded border border-red-500/20">Conta Inativa (Banida)</span>`;
                 botoesRisco = `
-                    <div class="flex gap-2 mt-1">
+                    <div class="flex flex-wrap gap-2 mt-1">
+                        <button onclick="window.desbanirConta('${p.uid}', '${safeNick}')" class="bg-green-700 hover:bg-green-600 text-white border border-green-500/50 px-2 py-1 rounded text-[10px] font-bold transition shadow" title="Remove o banimento desta conta">Desbanir</button>
                         <button onclick="window.restoreAccountBackup('${p.uid}', '${safeNick}')" class="bg-yellow-700 hover:bg-yellow-600 text-white border border-yellow-500/50 px-2 py-1 rounded text-[10px] font-bold transition shadow" title="Restaura conta de um backup antigo">Restaurar Backup</button>
                     </div>
                 `;
@@ -845,7 +881,7 @@
                     </div>
                  `;
                  botoesRisco = `
-                    <div class="flex gap-2 mt-1">
+                    <div class="flex flex-wrap gap-2 mt-1">
                         <button onclick="window.resetAccountWithBackup('${p.uid}', '${safeNick}')" class="bg-red-800 hover:bg-red-700 text-white border border-red-500/50 px-2 py-1 rounded text-[10px] font-bold transition shadow" title="Zera progresso e cria backup">Resetar Conta</button>
                         <button onclick="window.restoreAccountBackup('${p.uid}', '${safeNick}')" class="bg-yellow-700 hover:bg-yellow-600 text-white border border-yellow-500/50 px-2 py-1 rounded text-[10px] font-bold transition shadow" title="Restaura conta de um backup antigo">Restaurar Backup</button>
                     </div>
@@ -911,6 +947,26 @@
         );
     };
 
+    window.confirmarRestauracao = async (uid, nick, backupId) => {
+        document.getElementById('backup-modal').classList.add('hidden'); 
+        document.getElementById('backup-modal').classList.remove('flex');
+        
+        window.mostrarModalConfirmacao(
+            "Confirmar Restauração",
+            `Atenção: Restaurar este backup vai sobrescrever os dados atuais de "${nick}" (incluindo as cartas recentes).\nTem certeza de que deseja continuar?`,
+            async () => {
+                try {
+                    await callAdminCF('adminRestoreAccount', { targetUid: uid, backupId: backupId });
+                    window.mostrarToast("Conta restaurada com sucesso a partir do backup antigo!", "sucesso");
+                    window.escanearHackers();
+                } catch (error) {
+                    console.error("Erro ao restaurar backup:", error);
+                    window.mostrarToast("Erro ao tentar restaurar: " + error.message, "erro");
+                }
+            }
+        );
+    };
+
     window.restoreAccountBackup = async (uid, nick) => {
         try {
             // Essa leitura é permitida pois ajustamos no firestore.rules para o Admin
@@ -931,40 +987,43 @@
             // Ordenar do mais recente para o mais antigo
             userBackups.sort((a,b) => b.data._backupMetadata.date.localeCompare(a.data._backupMetadata.date));
 
-            // Montar uma lista no formato texto para prompt
-            let backupListText = `Backups de ${nick} (Digite o NÚMERO correspondente para restaurar):\n\n`;
-            userBackups.forEach((bkp, index) => {
+            const modalDesc = document.getElementById('backup-modal-desc');
+            const listContainer = document.getElementById('backup-list-container');
+            
+            modalDesc.innerHTML = `Selecione um ponto de restauração para o jogador <strong class="text-white">${nick}</strong>:`;
+            listContainer.innerHTML = '';
+
+            userBackups.forEach((bkp) => {
                 const dateObj = new Date(bkp.data._backupMetadata.date);
                 const packs = bkp.data.totalPacksOpened || 0;
-                backupListText += `${index + 1} - Data: ${dateObj.toLocaleString()} (Packs: ${packs})\n`;
+                const reason = bkp.data._backupMetadata.reason || "Backup Automático";
+                const role = bkp.data.role || "player";
+                const invKeys = Object.keys(bkp.data.inventory || {}).length;
+
+                const cardHTML = `
+                    <div class="bg-slate-700 border border-slate-600 rounded-lg p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-slate-600 transition">
+                        <div>
+                            <div class="text-white font-bold mb-1 flex items-center gap-2">
+                                <span>📅 ${dateObj.toLocaleString('pt-BR')}</span>
+                                <span class="text-[10px] bg-blue-900/50 text-blue-400 border border-blue-500/50 px-2 py-0.5 rounded uppercase">${reason}</span>
+                            </div>
+                            <div class="text-sm text-slate-300 flex flex-wrap gap-x-4 gap-y-1">
+                                <span>📦 Packs Abertos: <strong class="text-white">${packs}</strong></span>
+                                <span>🃏 Cartas Únicas: <strong class="text-white">${invKeys}</strong></span>
+                                <span>🛡️ Cargo: <strong class="text-white capitalize">${role}</strong></span>
+                            </div>
+                        </div>
+                        <button onclick="window.confirmarRestauracao('${uid}', '${nick.replace(/'/g, "\\'")}', '${bkp.id}')" class="w-full md:w-auto bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-bold transition shadow-lg whitespace-nowrap">
+                            Usar este Backup
+                        </button>
+                    </div>
+                `;
+                listContainer.innerHTML += cardHTML;
             });
 
-            const choice = prompt(backupListText);
-            if (!choice) return;
-            const selectedIndex = parseInt(choice) - 1;
+            const m = document.getElementById('backup-modal');
+            m.classList.remove('hidden'); m.classList.add('flex');
 
-            if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= userBackups.length) {
-                return window.mostrarToast("Seleção inválida. A restauração foi cancelada.", "erro");
-            }
-
-            window.mostrarModalConfirmacao(
-                "Restaurar Backup",
-                `Atenção: Restaurar esse backup vai sobrescrever os dados atuais de "${nick}" (incluindo cartas recentes). Tem certeza?`,
-                async () => {
-                    try {
-                        const selectedBackup = userBackups[selectedIndex];
-                        
-                        await callAdminCF('adminRestoreAccount', { targetUid: uid, backupId: selectedBackup.id });
-                        
-                        window.mostrarToast("Conta restaurada com sucesso a partir do backup antigo!", "sucesso");
-                        window.escanearHackers();
-
-                    } catch (error) {
-                        console.error("Erro ao restaurar backup:", error);
-                        window.mostrarToast("Erro ao tentar restaurar: " + error.message, "erro");
-                    }
-                }
-            );
         } catch (error) {
             console.error("Erro ao buscar backups:", error);
             window.mostrarToast("Erro ao tentar buscar backups: " + error.message, "erro");
