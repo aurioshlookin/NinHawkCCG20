@@ -621,35 +621,6 @@
           </div>
       </div>
 
-      <!-- NOVO: Gerenciamento de Risco e Contas -->
-      <div class="bg-gray-800 p-6 rounded-xl border border-red-500/50 shadow-md col-span-full w-full">
-        <h3 class="text-xl font-bold text-red-400 mb-4 flex items-center gap-2">⚠️ Área de Risco (Ações Críticas)</h3>
-        
-        <div class="flex flex-col md:flex-row gap-6">
-          <!-- Bloco: Contas e Backups -->
-          <div class="flex-1 bg-gray-900 p-5 rounded-lg border border-red-900/50">
-            <h4 class="text-white font-bold mb-1">Reset de Conta</h4>
-            <p class="text-xs text-gray-400 mb-4">Reseta o progresso de um jogador e salva o estado atual em um backup.</p>
-            <input type="text" id="adminTargetUID" placeholder="Cole aqui o UID do Jogador" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-500 mb-3 text-sm">
-            <div class="flex gap-2 flex-wrap">
-              <button onclick="window.resetAccountWithBackup()" class="flex-1 bg-red-700 hover:bg-red-600 text-white px-3 py-2 rounded text-sm font-bold transition shadow whitespace-nowrap">Zerar Conta (Cria Backup)</button>
-              <button onclick="window.restoreAccountBackup()" class="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-2 rounded text-sm font-bold transition shadow whitespace-nowrap">🔄 Restaurar Backup</button>
-            </div>
-          </div>
-
-          <!-- Bloco: Gerenciamento de IPs -->
-          <div class="flex-1 bg-gray-900 p-5 rounded-lg border border-red-900/50">
-            <h4 class="text-white font-bold mb-1">Banimento de IP</h4>
-            <p class="text-xs text-gray-400 mb-4">Bloqueia ou restaura o acesso do servidor para um determinado IP.</p>
-            <input type="text" id="adminTargetIP" placeholder="Digite o Endereço de IP" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-red-500 mb-3 text-sm">
-            <div class="flex gap-2 flex-wrap">
-              <button onclick="window.banIP()" class="flex-1 bg-red-700 hover:bg-red-600 text-white px-3 py-2 rounded text-sm font-bold transition shadow whitespace-nowrap">Banir IP</button>
-              <button onclick="window.unbanIP()" class="flex-1 bg-green-700 hover:bg-green-600 text-white px-3 py-2 rounded text-sm font-bold transition shadow whitespace-nowrap">✅ Remover Ban (Restaurar)</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div class="bg-gray-800 p-8 rounded-xl border border-red-900/50 shadow-2xl">
         <h3 class="text-xl font-bold mb-4 text-white">Criar ou Editar Carta</h3>
         <div class="flex flex-col md:flex-row gap-8">
