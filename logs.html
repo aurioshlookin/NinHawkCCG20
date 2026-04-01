@@ -197,7 +197,7 @@
           <p class="text-sm text-gray-300 leading-relaxed">
               Este sistema analisa o <strong>tempo de criação da conta</strong> do jogador contra a <strong>matemática de pacotes</strong> permitida. <br>
               Sabendo que um jogador novato só pode adquirir <span class="text-yellow-400 font-bold">11 pacotes base</span> e precisa aguardar <span class="text-blue-400 font-bold">3 horas</span> para cada novo pacote, o algoritmo cruza essas datas e sinaliza injeções diretas no banco de dados.<br>
-              <span class="text-yellow-300">Nota: Contas sem data de criação registrada (legado) têm a verificação de tempo ignorada. Todos os jogadores aparecem na lista — use o nível de risco para filtrar suspeitos.</span>
+              <span class="text-yellow-300">Nota: Contas sem data de criação registrada (legado) têm a verificação de tempo ignorada. Todos os jogadores aparecem na lista — use o nível de risco para filtrar suspeitos. Membros da Staff têm verificações isentas.</span>
           </p>
           <div class="flex items-center gap-4 mt-6 flex-wrap">
             <button onclick="window.escanearHackers()" id="btn-scan" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-lg transition shadow-lg shadow-red-900/30 border border-red-400 flex items-center gap-2">
@@ -209,6 +209,7 @@
                 <option value="all">Todos os jogadores</option>
                 <option value="suspicious">Suspeitos ou superior</option>
                 <option value="high">Apenas Risco Alto</option>
+                <option value="banned">Apenas Banidos</option>
               </select>
             </div>
             <span id="scan-counter" class="text-slate-400 text-sm font-bold hidden"></span>
@@ -311,10 +312,10 @@
         const player = window.ultimosResultadosScan[index];
         if (!player) return;
         if (player.motivos.length === 0) {
-          window.mostrarModalInfo('✅ Jogador Limpo', `Nenhuma anomalia detectada para "${player.nick}".`);
+          window.mostrarModalInfo('✅ Conta Limpa', `Nenhuma anomalia detectada para "${player.nick}".`);
           return;
         }
-        window.mostrarModalInfo('🚨 Detalhamento da Infração', player.motivos.join('\n\n'));
+        window.mostrarModalInfo('🚨 Detalhamento', player.motivos.join('\n\n'));
     };
 
     // VERIFICAÇÃO DE AUTENTICAÇÃO
@@ -572,7 +573,6 @@
 
           try {
             const payload = { type: tipo === 'comum' ? 'basic' : 'premium', amount: 1 };
-            // Aproveitamos a mesma função que já existia antes do admin
             const result = await callAdminCF('adminSendPacksToAll', payload);
             window.mostrarToast(`Sucesso! Pacotes distribuídos para ${result.totalAffected} ninjas.`, "sucesso");
           } catch (error) {
@@ -649,25 +649,37 @@
         const btnScan = document.getElementById('btn-scan');
         const counter = document.getElementById('scan-counter');
 
-        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-red-400 font-bold animate-pulse">Consultando oráculos do servidor. Analisando todos os jogadores...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-red-400 font-bold animate-pulse">Consultando oráculos do servidor. Analisando todos os jogadores e banidos...</td></tr>';
         if (btnScan) { btnScan.disabled = true; btnScan.innerHTML = '<span class="animate-spin text-xl">⏳</span> Escaneando...'; }
         if (counter) counter.classList.add('hidden');
         
         try {
-            const usersSnap = await getDocs(collection(db, "users"));
+            // Busca em paralelo todos os usuários ativos E banidos
+            const [usersSnap, bannedSnap] = await Promise.all([
+                getDocs(collection(db, "users")),
+                getDocs(collection(db, "banned_users"))
+            ]);
+            
             window.ultimosResultadosScan = [];
+            let allUsers = [];
 
-            usersSnap.forEach(docSnap => {
-                const u = docSnap.data();
+            usersSnap.forEach(doc => allUsers.push({ id: doc.id, data: doc.data(), isBanned: false }));
+            bannedSnap.forEach(doc => allUsers.push({ id: doc.id, data: doc.data(), isBanned: true }));
+
+            allUsers.forEach(userObj => {
+                const u = userObj.data;
+                const docId = userObj.id;
+                const isBanned = userObj.isBanned;
+
                 const nick = u.displayName || u.displayNameLower || 'Desconhecido';
                 const nickLower = (u.displayNameLower || nick).toLowerCase();
 
-                // Pula apenas admins confirmados — Checar role E nomes protegidos
-                if (u.role === 'admin') return;
-                if (nickLower === 'auriosh' || nickLower === 'vilao') return;
-
                 let scoreRisco = 0;
                 let motivos = [];
+                let statusBadge = '';
+
+                // Verifica se é administrador ou deus (Auri/Vilão)
+                const isAdmin = u.role === 'admin' || nickLower === 'auriosh' || nickLower === 'vilao';
 
                 // 1. Contagem total de cartas no inventário
                 let totalCartas = 0;
@@ -681,59 +693,71 @@
                 const pacotesP      = u.premiumPullsAvailable   || 0;
                 const pacotesTotaisAdquiridos = packsAbertos + pacotesB + pacotesP;
 
-                // 2. Análise de tempo (somente se houver data de criação)
-                let isLegacy = false;
-                let createdAtMs = null;
-
-                if (u.createdAt) {
-                    if (u.createdAt.toDate)                  createdAtMs = u.createdAt.toDate().getTime();
-                    else if (typeof u.createdAt === 'number') createdAtMs = u.createdAt;
-                    else if (typeof u.createdAt === 'string') createdAtMs = new Date(u.createdAt).getTime();
-                }
-
-                if (!createdAtMs || isNaN(createdAtMs)) {
-                    isLegacy = true;
-                    motivos.push(`🕰️ CONTA VETERANA (Legado):\nSem data de criação registrada. Verificação temporal desativada para este jogador.`);
-                }
-
-                if (!isLegacy && createdAtMs) {
-                    const horasDesdeCriacao = Math.max(0, (Date.now() - createdAtMs) / (1000 * 60 * 60));
-                    const pacotesGeradosPorTempo = Math.floor(horasDesdeCriacao / 3);
-                    // 11 base + gerados por tempo + 15 de margem (boosts globais e conquistas)
-                    const limitePorTempoGeral = 11 + pacotesGeradosPorTempo + 15;
-
-                    if (pacotesTotaisAdquiridos > limitePorTempoGeral) {
-                        scoreRisco += 100;
-                        motivos.push(`⏳ INJEÇÃO MASSIVA DE PACOTES:\nConta com ${horasDesdeCriacao.toFixed(1)}h de vida. Teto esperado: ~${limitePorTempoGeral} pacotes. Detectados: ${pacotesTotaisAdquiridos} (Abertos: ${packsAbertos} + Guardados: ${pacotesB + pacotesP}).`);
+                if (isBanned) {
+                    scoreRisco = 1000;
+                    statusBadge = `<span class="bg-red-900 text-white border border-red-500 px-2 py-1 rounded text-xs font-black uppercase shadow-[0_0_10px_rgba(239,68,68,0.8)]">🚫 BANIDO</span>`;
+                    motivos.push(`🚫 CONTA BANIDA:\nEsta conta foi banida do servidor.\nData: ${new Date(u.bannedAt || Date.now()).toLocaleString()}\nMotivo: ${u.reason || 'Desconhecido'}\nPor: ${u.bannedBy || 'Sistema'}`);
+                } else if (isAdmin) {
+                    scoreRisco = 0; // Admins tem matemática zoada porque testam e giram coisas, não alertar
+                    if (nickLower === 'auriosh' || nickLower === 'vilao') {
+                        statusBadge = `<span class="bg-yellow-900/50 text-yellow-400 border border-yellow-500/50 px-2 py-1 rounded text-xs font-black uppercase shadow-[0_0_10px_rgba(250,204,21,0.5)]">⚡ CRIADOR</span>`;
+                    } else {
+                        statusBadge = `<span class="bg-purple-900/50 text-purple-400 border border-purple-500/50 px-2 py-1 rounded text-xs font-black uppercase shadow-[0_0_10px_rgba(168,85,247,0.5)]">👑 ADMIN</span>`;
                     }
+                    motivos.push(`🛡️ CONTA ADMINISTRATIVA:\nValidações de segurança e limites de pacotes são ignorados para membros da Staff.`);
+                } else {
+                    // JOGADOR NORMAL - VERIFICAÇÃO ANTI-HACK
+                    let isLegacy = false;
+                    let createdAtMs = null;
+
+                    if (u.createdAt) {
+                        if (u.createdAt.toDate)                  createdAtMs = u.createdAt.toDate().getTime();
+                        else if (typeof u.createdAt === 'number') createdAtMs = u.createdAt;
+                        else if (typeof u.createdAt === 'string') createdAtMs = new Date(u.createdAt).getTime();
+                    }
+
+                    if (!createdAtMs || isNaN(createdAtMs)) {
+                        isLegacy = true;
+                        motivos.push(`🕰️ CONTA VETERANA (Legado):\nSem data de criação registrada. Verificação temporal desativada para este jogador.`);
+                    }
+
+                    if (!isLegacy && createdAtMs) {
+                        const horasDesdeCriacao = Math.max(0, (Date.now() - createdAtMs) / (1000 * 60 * 60));
+                        const pacotesGeradosPorTempo = Math.floor(horasDesdeCriacao / 3);
+                        // 11 base + gerados por tempo + 15 de margem (boosts globais e conquistas)
+                        const limitePorTempoGeral = 11 + pacotesGeradosPorTempo + 15;
+
+                        if (pacotesTotaisAdquiridos > limitePorTempoGeral) {
+                            scoreRisco += 100;
+                            motivos.push(`⏳ INJEÇÃO MASSIVA DE PACOTES:\nConta com ${horasDesdeCriacao.toFixed(1)}h de vida. Teto esperado: ~${limitePorTempoGeral} pacotes. Detectados: ${pacotesTotaisAdquiridos} (Abertos: ${packsAbertos} + Guardados: ${pacotesB + pacotesP}).`);
+                        }
+                    }
+
+                    // Matemática de duplicação de cartas
+                    const cartasMaximasPermitidas = (packsAbertos * 2) + (trocasFeitas * 3) + 30;
+                    if (totalCartas > cartasMaximasPermitidas && packsAbertos > 0) {
+                        scoreRisco += 80;
+                        motivos.push(`🃏 DUPLICAÇÃO DE CARTAS:\n${totalCartas} cartas no álbum, mas somente ${packsAbertos} pacotes abertos. Máximo esperado: ${cartasMaximasPermitidas}.`);
+                    }
+
+                    // Acúmulo suspeito de pacotes guardados
+                    if (pacotesB > 50) {
+                        scoreRisco += 20;
+                        motivos.push(`📦 ACÚMULO SUSPEITO:\n${pacotesB} pacotes básicos fechados acumulados.`);
+                    }
+                    if (pacotesP > 10) {
+                        scoreRisco += 20;
+                        motivos.push(`✨ ACÚMULO PREMIUM:\n${pacotesP} pacotes premium guardados.`);
+                    }
+
+                    // Define a badge de risco caso não seja Admin nem Banido
+                    statusBadge = `<span class="bg-green-900/30 text-green-400 border border-green-500/30 px-2 py-1 rounded text-xs font-bold">SEGURO</span>`;
+                    if (scoreRisco >= 20 && scoreRisco < 70) statusBadge = `<span class="bg-yellow-900/50 text-yellow-400 border border-yellow-500/50 px-2 py-1 rounded text-xs font-bold">SUSPEITO</span>`;
+                    if (scoreRisco >= 70) statusBadge = `<span class="bg-red-900/50 text-red-500 border border-red-500/50 px-3 py-1.5 rounded text-xs font-black animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]">RISCO ALTO</span>`;
                 }
 
-                // 3. Matemática de duplicação de cartas
-                // Cada pacote = 2 cartas. Troca pode receber até 3. Conquistas ~30 de margem.
-                const cartasMaximasPermitidas = (packsAbertos * 2) + (trocasFeitas * 3) + 30;
-                if (totalCartas > cartasMaximasPermitidas && packsAbertos > 0) {
-                    scoreRisco += 80;
-                    motivos.push(`🃏 DUPLICAÇÃO DE CARTAS:\n${totalCartas} cartas no álbum, mas somente ${packsAbertos} pacotes abertos. Máximo esperado: ${cartasMaximasPermitidas}.`);
-                }
-
-                // 4. Acúmulo suspeito de pacotes guardados
-                if (pacotesB > 50) {
-                    scoreRisco += 20;
-                    motivos.push(`📦 ACÚMULO SUSPEITO:\n${pacotesB} pacotes básicos fechados acumulados.`);
-                }
-                if (pacotesP > 10) {
-                    scoreRisco += 20;
-                    motivos.push(`✨ ACÚMULO PREMIUM:\n${pacotesP} pacotes premium guardados.`);
-                }
-
-                // Badge visual de risco
-                let statusBadge = `<span class="bg-green-900/30 text-green-400 border border-green-500/30 px-2 py-1 rounded text-xs font-bold">SEGURO</span>`;
-                if (scoreRisco >= 20 && scoreRisco < 70) statusBadge = `<span class="bg-yellow-900/50 text-yellow-400 border border-yellow-500/50 px-2 py-1 rounded text-xs font-bold">SUSPEITO</span>`;
-                if (scoreRisco >= 70) statusBadge = `<span class="bg-red-900/50 text-red-500 border border-red-500/50 px-3 py-1.5 rounded text-xs font-black animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]">RISCO ALTO</span>`;
-
-                // Empurra TODOS os jogadores não-admin — inclusive os limpos
                 window.ultimosResultadosScan.push({
-                    uid: docSnap.id,
+                    uid: docId,
                     nick,
                     totalCartas,
                     packsAbertos,
@@ -741,11 +765,13 @@
                     pacotesP,
                     scoreRisco,
                     statusBadge,
-                    motivos
+                    motivos,
+                    isBanned,
+                    isAdmin
                 });
             });
 
-            // Ordena: mais suspeitos primeiro, depois por nome
+            // Ordena: Banidos no topo > Mais suspeitos primeiro > Alfabeto
             window.ultimosResultadosScan.sort((a, b) => {
                 if (b.scoreRisco !== a.scoreRisco) return b.scoreRisco - a.scoreRisco;
                 return a.nick.localeCompare(b.nick);
@@ -753,12 +779,12 @@
 
             const total = window.ultimosResultadosScan.length;
             if (counter) {
-                counter.innerText = `${total} jogador(es) analisado(s)`;
+                counter.innerText = `${total} conta(s) analisada(s)`;
                 counter.classList.remove('hidden');
             }
 
             window.aplicarFiltroRisco();
-            window.mostrarToast(`Auditoria concluída! ${total} jogadores analisados.`, "sucesso");
+            window.mostrarToast(`Auditoria concluída! ${total} contas (ativas e inativas) analisadas.`, "sucesso");
 
         } catch (error) {
             console.error("Erro no scanner:", error);
@@ -768,42 +794,63 @@
         }
     };
 
-    // Função de filtro separada para aplicar sobre os resultados já escaneados
     window.aplicarFiltroRisco = () => {
         const filterVal = document.getElementById('risk-filter')?.value || 'all';
         const tbody = document.getElementById('antihack-tbody');
 
         let lista = window.ultimosResultadosScan;
-        if (filterVal === 'suspicious') lista = lista.filter(p => p.scoreRisco >= 20);
-        if (filterVal === 'high')       lista = lista.filter(p => p.scoreRisco >= 70);
+        if (filterVal === 'suspicious') lista = lista.filter(p => p.scoreRisco >= 20 && !p.isBanned);
+        if (filterVal === 'high')       lista = lista.filter(p => p.scoreRisco >= 70 && !p.isBanned);
+        if (filterVal === 'banned')     lista = lista.filter(p => p.isBanned);
 
         tbody.innerHTML = '';
 
         if (lista.length === 0) {
             const msg = filterVal === 'all'
-                ? 'Nenhum jogador encontrado. Clique em "Escanear" para começar.'
-                : 'Nenhum jogador nesta categoria de risco.';
+                ? 'Nenhuma conta encontrada. Clique em "Escanear" para começar.'
+                : 'Nenhum jogador nesta categoria.';
             tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-green-400 font-bold">✅ ${msg}</td></tr>`;
             return;
         }
 
         lista.forEach((p, index) => {
-            // Encontra o índice real no array completo para mostrarMotivos funcionar
             const realIndex = window.ultimosResultadosScan.indexOf(p);
-            const corLinha = p.scoreRisco >= 70 ? 'bg-red-900/10 hover:bg-red-900/20' : 'hover:bg-slate-700/50';
+            
+            // Fundo escuro para banidos, vermelho para hackers
+            const corLinha = p.isBanned ? 'bg-red-950/40 opacity-80' : (p.scoreRisco >= 70 ? 'bg-red-900/10 hover:bg-red-900/20' : 'hover:bg-slate-700/50');
 
             const areaDetalhes = p.motivos.length > 0
-              ? `<button onclick="window.mostrarMotivos(${realIndex})" class="bg-red-900/60 border border-red-500 text-red-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-md hover:bg-red-800 transition flex items-center gap-1"><span class="text-sm">🔍</span> Ver Relatório (${p.motivos.length})</button>`
+              ? `<button onclick="window.mostrarMotivos(${realIndex})" class="bg-red-900/60 border border-red-500 text-red-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-md hover:bg-red-800 transition flex items-center gap-1"><span class="text-sm">🔍</span> Ver Detalhes</button>`
               : `<span class="bg-green-900/30 border border-green-500/30 text-green-400 px-2 py-1 rounded text-xs font-bold flex items-center gap-1">✔️ Tudo OK</span>`;
 
-            // Novos botões de gestão da conta logo abaixo do nome
             const safeNick = p.nick.replace(/'/g, "\\'");
-            const botoesRisco = `
-                <div class="flex gap-2 mt-1">
-                    <button onclick="window.resetAccountWithBackup('${p.uid}', '${safeNick}')" class="bg-red-800 hover:bg-red-700 text-white border border-red-500/50 px-2 py-1 rounded text-[10px] font-bold transition shadow" title="Zera progresso e cria backup">Resetar Conta</button>
-                    <button onclick="window.restoreAccountBackup('${p.uid}', '${safeNick}')" class="bg-yellow-700 hover:bg-yellow-600 text-white border border-yellow-500/50 px-2 py-1 rounded text-[10px] font-bold transition shadow" title="Restaura conta de um backup antigo">Restaurar Backup</button>
-                </div>
-            `;
+            
+            let botoesAcao = '';
+            let botoesRisco = '';
+
+            if (p.isBanned) {
+                botoesAcao = `<span class="text-xs text-red-400 font-bold px-2 py-1 bg-red-900/20 rounded border border-red-500/20">Conta Inativa (Banida)</span>`;
+                botoesRisco = `
+                    <div class="flex gap-2 mt-1">
+                        <button onclick="window.restoreAccountBackup('${p.uid}', '${safeNick}')" class="bg-yellow-700 hover:bg-yellow-600 text-white border border-yellow-500/50 px-2 py-1 rounded text-[10px] font-bold transition shadow" title="Restaura conta de um backup antigo">Restaurar Backup</button>
+                    </div>
+                `;
+            } else if (p.isAdmin) {
+                 botoesAcao = `<span class="text-xs text-purple-400 font-bold px-2 py-1 bg-purple-900/20 rounded border border-purple-500/20">Ações Bloqueadas (Staff)</span>`;
+            } else {
+                 botoesAcao = `
+                    <div class="flex flex-col gap-2 items-center justify-center min-w-[120px]">
+                        <button onclick="window.zerarRecursos('${p.uid}', '${safeNick}')" class="w-full block bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow text-center">Zerar Pacotes</button>
+                        <button onclick="window.banirJogadorPorIP('${safeNick}')" class="w-full block bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow text-center">Banir IP</button>
+                    </div>
+                 `;
+                 botoesRisco = `
+                    <div class="flex gap-2 mt-1">
+                        <button onclick="window.resetAccountWithBackup('${p.uid}', '${safeNick}')" class="bg-red-800 hover:bg-red-700 text-white border border-red-500/50 px-2 py-1 rounded text-[10px] font-bold transition shadow" title="Zera progresso e cria backup">Resetar Conta</button>
+                        <button onclick="window.restoreAccountBackup('${p.uid}', '${safeNick}')" class="bg-yellow-700 hover:bg-yellow-600 text-white border border-yellow-500/50 px-2 py-1 rounded text-[10px] font-bold transition shadow" title="Restaura conta de um backup antigo">Restaurar Backup</button>
+                    </div>
+                `;
+            }
 
             tbody.innerHTML += `
                 <tr class="${corLinha} transition border-b border-slate-700/30">
@@ -819,11 +866,8 @@
                         <span class="text-blue-400 block mb-1" title="Pacotes Básicos">${p.pacotesB} Básico</span>
                         <span class="text-yellow-400 block" title="Pacotes Premium">${p.pacotesP} Premium</span>
                     </td>
-                    <td class="px-4 py-4 align-middle">
-                        <div class="flex flex-col gap-2 items-center justify-center min-w-[120px]">
-                            <button onclick="window.zerarRecursos('${p.uid}', '${safeNick}')" class="w-full block bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow text-center">Zerar Pacotes</button>
-                            <button onclick="window.banirJogadorPorIP('${safeNick}')" class="w-full block bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow text-center">Banir IP</button>
-                        </div>
+                    <td class="px-4 py-4 align-middle text-center">
+                        ${botoesAcao}
                     </td>
                 </tr>
             `;
