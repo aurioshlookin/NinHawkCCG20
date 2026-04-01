@@ -203,7 +203,6 @@
             <button onclick="window.escanearHackers()" id="btn-scan" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-lg transition shadow-lg shadow-red-900/30 border border-red-400 flex items-center gap-2">
                 <span>🔍</span> Escanear Todo o Servidor Agora
             </button>
-            <!-- FIX: filtro de risco para ajudar a encontrar suspeitos sem esconder jogadores limpos -->
             <div class="flex items-center gap-2">
               <label class="text-sm text-slate-400 font-bold">Mostrar apenas:</label>
               <select id="risk-filter" onchange="window.aplicarFiltroRisco()" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-red-500">
@@ -379,7 +378,7 @@
       if (lower.includes('admin') || lower.includes('criou uma nova carta') || lower.includes('atualizou a carta') || lower.includes('deletou') || lower.includes('renumerou')) {
         return { id: 'admin', label: 'Admin', badge: 'bg-red-500/20 text-red-400 border-red-500/50' };
       }
-      if (lower.includes('nova conta') || lower.includes('registrou') || lower.includes('baniu')) {
+      if (lower.includes('nova conta') || lower.includes('registrou') || lower.includes('baniu') || lower.includes('zerou a conta') || lower.includes('restaurou')) {
         return { id: 'account', label: 'Conta/Ban', badge: 'bg-green-500/20 text-green-400 border-green-500/50' };
       }
       if (lower.includes('pacote') || lower.includes('boost') || lower.includes('escolheu e guardou as cartas')) {
@@ -494,6 +493,8 @@
         formattedAction = formattedAction.replace(/(Boost Global|Boost Comum|Boost Premium)/gi, '<strong class="text-blue-400 font-black uppercase">$1</strong>');
         formattedAction = formattedAction.replace(/(Admin)/g, '<strong class="text-red-400">$1</strong>');
         formattedAction = formattedAction.replace(/(BANIU)/g, '<strong class="text-red-500 font-black drop-shadow-md text-lg">$1</strong>');
+        formattedAction = formattedAction.replace(/(ZEROU A CONTA)/g, '<strong class="text-red-400 font-black drop-shadow-md">$1</strong>');
+        formattedAction = formattedAction.replace(/(RESTAUROU)/g, '<strong class="text-yellow-400 font-black drop-shadow-md">$1</strong>');
         formattedAction = formattedAction.replace(/\(R\.SS\)/g, '%%RANK_SS%%');
         formattedAction = formattedAction.replace(/\(R\.S\)/g, '%%RANK_S%%');
         formattedAction = formattedAction.replace(/\(R\.A\)/g, '%%RANK_A%%');
@@ -510,32 +511,32 @@
         formattedAction = formattedAction.replace(/%%RANK_B%%/g, '<span class="inline-block text-blue-400 font-bold bg-blue-900/20 px-1 rounded mx-1">Rank B</span>');
         formattedAction = formattedAction.replace(/%%RANK_C%%/g, '<span class="inline-block text-green-400 font-bold bg-green-900/20 px-1 rounded mx-1">Rank C</span>');
 
-const tr = document.createElement('tr');
-tr.className = "hover:bg-slate-700/50 transition";
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-700/50 transition";
 
-const tdDate = document.createElement('td');
-tdDate.className = "px-6 py-3 text-slate-400 text-sm border-r border-slate-700/50";
-tdDate.textContent = dateStr;
+        const tdDate = document.createElement('td');
+        tdDate.className = "px-6 py-3 text-slate-400 text-sm border-r border-slate-700/50";
+        tdDate.textContent = dateStr;
 
-const tdCategory = document.createElement('td');
-tdCategory.className = "px-6 py-3 border-r border-slate-700/50";
-tdCategory.innerHTML = `
-  <span class="px-2.5 py-1 text-[10px] font-black uppercase rounded border ${log.category.badge}">
-    ${log.category.label}
-  </span>
-`;
+        const tdCategory = document.createElement('td');
+        tdCategory.className = "px-6 py-3 border-r border-slate-700/50";
+        tdCategory.innerHTML = `
+          <span class="px-2.5 py-1 text-[10px] font-black uppercase rounded border ${log.category.badge}">
+            ${log.category.label}
+          </span>
+        `;
 
-const tdAction = document.createElement('td');
-tdAction.className = "px-6 py-3 text-slate-300 font-medium whitespace-normal min-w-[300px] leading-relaxed";
+        const tdAction = document.createElement('td');
+        tdAction.className = "px-6 py-3 text-slate-300 font-medium whitespace-normal min-w-[300px] leading-relaxed";
 
-// 🔒 (ANTI-XSS)
-tdAction.innerHTML = DOMPurify.sanitize(formattedAction);
+        // 🔒 (ANTI-XSS)
+        tdAction.innerHTML = DOMPurify.sanitize(formattedAction);
 
-tr.appendChild(tdDate);
-tr.appendChild(tdCategory);
-tr.appendChild(tdAction);
+        tr.appendChild(tdDate);
+        tr.appendChild(tdCategory);
+        tr.appendChild(tdAction);
 
-tbody.appendChild(tr);
+        tbody.appendChild(tr);
       });
 
       pageInfo.innerText = `${Math.min(startIndex + 1, window.filteredLogs.length)} - ${Math.min(startIndex + window.itemsPerPage, window.filteredLogs.length)} de ${window.filteredLogs.length}`;
@@ -843,11 +844,21 @@ tbody.appendChild(tr);
               ? `<button onclick="window.mostrarMotivos(${realIndex})" class="bg-red-900/60 border border-red-500 text-red-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-md hover:bg-red-800 transition flex items-center gap-1"><span class="text-sm">🔍</span> Ver Relatório (${p.motivos.length})</button>`
               : `<span class="bg-green-900/30 border border-green-500/30 text-green-400 px-2 py-1 rounded text-xs font-bold flex items-center gap-1">✔️ Tudo OK</span>`;
 
+            // Novos botões de gestão da conta logo abaixo do nome
+            const safeNick = p.nick.replace(/'/g, "\\'");
+            const botoesRisco = `
+                <div class="flex gap-2 mt-1">
+                    <button onclick="window.resetAccountWithBackup('${p.uid}', '${safeNick}')" class="bg-red-800 hover:bg-red-700 text-white border border-red-500/50 px-2 py-1 rounded text-[10px] font-bold transition shadow" title="Zera progresso e cria backup">Resetar Conta</button>
+                    <button onclick="window.restoreAccountBackup('${p.uid}', '${safeNick}')" class="bg-yellow-700 hover:bg-yellow-600 text-white border border-yellow-500/50 px-2 py-1 rounded text-[10px] font-bold transition shadow" title="Restaura conta de um backup antigo">Restaurar Backup</button>
+                </div>
+            `;
+
             tbody.innerHTML += `
                 <tr class="${corLinha} transition border-b border-slate-700/30">
                     <td class="px-4 py-4 text-slate-200 font-bold flex flex-col items-start gap-2">
                         <span class="text-base">${p.nick}</span>
                         ${areaDetalhes}
+                        ${botoesRisco}
                     </td>
                     <td class="px-4 py-4 text-center">${p.statusBadge}</td>
                     <td class="px-4 py-4 text-center font-bold text-gray-400">${p.packsAbertos}</td>
@@ -858,8 +869,8 @@ tbody.appendChild(tr);
                     </td>
                     <td class="px-4 py-4 align-middle">
                         <div class="flex flex-col gap-2 items-center justify-center min-w-[120px]">
-                            <button onclick="window.zerarRecursos('${p.uid}', '${p.nick.replace(/'/g, "\\'")}')" class="w-full block bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow text-center">Zerar Pacotes</button>
-                            <button onclick="window.banirJogadorPorIP('${p.nick.replace(/'/g, "\\'")}')" class="w-full block bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow text-center">Banir IP</button>
+                            <button onclick="window.zerarRecursos('${p.uid}', '${safeNick}')" class="w-full block bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow text-center">Zerar Pacotes</button>
+                            <button onclick="window.banirJogadorPorIP('${safeNick}')" class="w-full block bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded text-xs font-bold transition shadow text-center">Banir IP</button>
                         </div>
                     </td>
                 </tr>
@@ -891,6 +902,152 @@ tbody.appendChild(tr);
                 }
             }
         );
+    };
+
+    // ============================================================
+    // AÇÕES DE RESET E RESTAURAÇÃO DE CONTA (INTEGRADO AOS LOGS)
+    // ============================================================
+
+    window.resetAccountWithBackup = async (uid, nick) => {
+        window.mostrarModalConfirmacao(
+            "Zerar Conta (Cria Backup)",
+            `TEM CERTEZA? Isso criará um backup de segurança e removerá todas as cartas, progresso, fusões e moedas da conta do jogador "${nick}".`,
+            async () => {
+                try {
+                    const userRef = doc(db, "users", uid);
+                    const userSnap = await getDoc(userRef);
+
+                    if (!userSnap.exists()) {
+                        return window.mostrarToast("Usuário não encontrado no banco de dados.", "erro");
+                    }
+
+                    const userData = userSnap.data();
+                    const timestamp = new Date().toISOString();
+
+                    // 1. Criar o Backup na coleção 'backups_accounts'
+                    const backupId = `${uid}_${timestamp}`;
+                    const backupRef = doc(db, "backups_accounts", backupId);
+                    
+                    await setDoc(backupRef, {
+                        ...userData,
+                        _backupMetadata: {
+                            originalUid: uid,
+                            date: timestamp,
+                            reason: "Admin Manual Reset (Logs Panel)",
+                            adminUid: auth.currentUser ? auth.currentUser.uid : "unknown"
+                        }
+                    });
+
+                    // 2. Aplicar o Estado Inicial (Vazio/Novo) mantendo as informações base
+                    const defaultState = {
+                        uid: uid,
+                        displayName: userData.displayName || "Jogador",
+                        email: userData.email || "",
+                        photoURL: userData.photoURL || "",
+                        role: userData.role || "player",
+                        pullsAvailable: 5,
+                        premiumPullsAvailable: 0,
+                        inventory: {},
+                        tradesToday: 0,
+                        lastTradeDate: "",
+                        lastPullTimestamp: null,
+                        totalPacksOpened: 0,
+                        totalTradesCompleted: 0,
+                        claimedAchievements: {},
+                        notifications: [{
+                            title: "Sua conta foi redefinida",
+                            desc: "Um administrador zerou o seu progresso. Seus dados antigos foram salvos em um backup de segurança.",
+                            date: new Date().toISOString(),
+                            read: false
+                        }],
+                        createdAt: userData.createdAt || new Date()
+                    };
+
+                    await setDoc(userRef, defaultState);
+
+                    await addDoc(collection(db, "system_logs"), {
+                        action: `Admin ${auth.currentUser.displayName} ZEROU A CONTA do jogador ${nick} (Backup ID: ${backupId}).`,
+                        timestamp: new Date()
+                    });
+                    
+                    window.mostrarToast(`Conta zerada com sucesso! Backup criado.`, "sucesso");
+                    window.escanearHackers();
+
+                } catch (error) {
+                    console.error("Erro ao resetar conta:", error);
+                    window.mostrarToast("Erro ao processar o reset: " + error.message, "erro");
+                }
+            }
+        );
+    };
+
+    window.restoreAccountBackup = async (uid, nick) => {
+        try {
+            const backupsRef = collection(db, "backups_accounts");
+            const querySnapshot = await getDocs(backupsRef);
+            
+            let userBackups = [];
+            querySnapshot.forEach((docSnap) => {
+                if (docSnap.id.startsWith(uid)) {
+                    userBackups.push({ id: docSnap.id, data: docSnap.data() });
+                }
+            });
+
+            if (userBackups.length === 0) {
+                return window.mostrarToast(`Nenhum backup encontrado para o jogador ${nick}.`, "erro");
+            }
+
+            // Ordenar do mais recente para o mais antigo
+            userBackups.sort((a,b) => b.data._backupMetadata.date.localeCompare(a.data._backupMetadata.date));
+
+            // Montar uma lista no formato texto para prompt
+            let backupListText = `Backups de ${nick} (Digite o NÚMERO correspondente para restaurar):\n\n`;
+            userBackups.forEach((bkp, index) => {
+                const dateObj = new Date(bkp.data._backupMetadata.date);
+                const packs = bkp.data.totalPacksOpened || 0;
+                backupListText += `${index + 1} - Data: ${dateObj.toLocaleString()} (Packs: ${packs})\n`;
+            });
+
+            const choice = prompt(backupListText);
+            if (!choice) return;
+            const selectedIndex = parseInt(choice) - 1;
+
+            if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= userBackups.length) {
+                return window.mostrarToast("Seleção inválida. A restauração foi cancelada.", "erro");
+            }
+
+            window.mostrarModalConfirmacao(
+                "Restaurar Backup",
+                `Atenção: Restaurar esse backup vai sobrescrever os dados atuais de "${nick}" (incluindo cartas recentes). Tem certeza?`,
+                async () => {
+                    try {
+                        const selectedBackup = userBackups[selectedIndex];
+                        
+                        // Retirar a tag de metadado do backup antes de devolver para a pasta "users"
+                        const dataToRestore = { ...selectedBackup.data };
+                        delete dataToRestore._backupMetadata;
+
+                        const userRef = doc(db, "users", uid);
+                        await setDoc(userRef, dataToRestore);
+
+                        await addDoc(collection(db, "system_logs"), {
+                            action: `Admin ${auth.currentUser.displayName} RESTAUROU UM BACKUP da conta do jogador ${nick}.`,
+                            timestamp: new Date()
+                        });
+                        
+                        window.mostrarToast("Conta restaurada com sucesso a partir do backup antigo!", "sucesso");
+                        window.escanearHackers();
+
+                    } catch (error) {
+                        console.error("Erro ao restaurar backup:", error);
+                        window.mostrarToast("Erro ao tentar restaurar: " + error.message, "erro");
+                    }
+                }
+            );
+        } catch (error) {
+            console.error("Erro ao buscar backups:", error);
+            window.mostrarToast("Erro ao tentar buscar backups: " + error.message, "erro");
+        }
     };
 
   </script>
