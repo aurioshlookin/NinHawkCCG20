@@ -55,6 +55,27 @@ window.suggestNextCardNumber = () => {
 // ── Carregamento do banco de cartas ───────────────────────────
 window.loadCardsCache = async () => {
   try {
+    // --- INJEÇÃO AUTOMÁTICA DA UI (Coleções e Bloqueio de Input) ---
+    const versionSelect = document.getElementById("admin-card-version");
+    if (versionSelect && !versionSelect.hasAttribute('data-options-set')) {
+      // Substitui as opções antigas do HTML pelas novas dinamicamente
+      versionSelect.innerHTML = `
+        <option value="BR1">Coleção BR1</option>
+        <option value="BR2">Coleção BR2</option>
+        <option value="IArt">Coleção IArt</option>
+      `;
+      versionSelect.setAttribute('data-options-set', 'true');
+    }
+
+    const numberInput = document.getElementById("admin-card-number");
+    if (numberInput) {
+      // Bloqueia o campo para o usuário não digitar
+      numberInput.readOnly = true;
+      numberInput.classList.add("bg-gray-800", "text-gray-400", "cursor-not-allowed", "opacity-80");
+      numberInput.title = "Numeração automática baseada na coleção";
+    }
+    // -----------------------------------------------------------------
+
     const globalSnap = await getDoc(doc(db, "settings", "global"));
     let currentVersion = Date.now();
     if (globalSnap.exists()) currentVersion = globalSnap.data().cardsVersion;
@@ -75,7 +96,6 @@ window.loadCardsCache = async () => {
     }
 
     // Adiciona listener para recalcular o número automaticamente quando mudar a coleção
-    const versionSelect = document.getElementById("admin-card-version");
     if (versionSelect && !versionSelect.hasAttribute('data-listener')) {
       versionSelect.addEventListener("change", window.suggestNextCardNumber);
       versionSelect.setAttribute('data-listener', 'true');
@@ -165,8 +185,10 @@ window.deleteCard = (id, name) => {
       // Invalida cache local e recarrega
       localStorage.removeItem("nin_cards_cache");
       localStorage.removeItem("nin_cards_version");
-      if (window.loadCardsCache) window.loadCardsCache();
+      
+      if (window.loadCardsCache) await window.loadCardsCache();
       if (window.suggestNextCardNumber) window.suggestNextCardNumber();
+      if (window.renderAdminCards) window.renderAdminCards(); // Atualiza painel de gerenciar
     } catch (err) {
       window.showMessage("Erro ao excluir carta: " + err.message);
     }
@@ -460,6 +482,7 @@ if (adminFormGlobal) {
       msg.classList.remove("hidden");
       setTimeout(() => msg.classList.add("hidden"), 3000);
 
+      // Limpa dados de form pós submissão
       if (editingCardId) {
         window.cancelEdit();
       } else {
@@ -471,16 +494,22 @@ if (adminFormGlobal) {
           child.classList.remove("border-green-500", "ring-2");
           child.classList.add("border-transparent");
         });
-        
-        // Invalida cache local E recarrega logo após a criação (para não sugerir mesmo número)
-        localStorage.removeItem("nin_cards_cache");
-        localStorage.removeItem("nin_cards_version");
-        if (window.loadCardsCache) await window.loadCardsCache();
+      }
 
+      // Invalida cache local E recarrega a nova versão
+      localStorage.removeItem("nin_cards_cache");
+      localStorage.removeItem("nin_cards_version");
+      
+      // Aguarda o recarregamento do banco
+      if (window.loadCardsCache) await window.loadCardsCache();
+
+      // Funções que devem rodar após ter o banco de dados renovado na memória:
+      if (!editingCardId) {
         if (window.suggestNextCardNumber) window.suggestNextCardNumber();
         if (window.updateAdminPreview)    window.updateAdminPreview();
-        if (window.loadGitHubImages)      window.loadGitHubImages();
       }
+      if (window.loadGitHubImages)   window.loadGitHubImages(); // Faz a img criada sumir
+      if (window.renderAdminCards)   window.renderAdminCards(); // Insere a carta na aba Gerenciar Cartas
 
     } catch (error) {
       msg.innerText = "Erro: " + error.message;
