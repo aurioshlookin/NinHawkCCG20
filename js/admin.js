@@ -56,15 +56,39 @@ window.suggestNextCardNumber = () => {
 window.loadCardsCache = async () => {
   try {
     // --- INJEÇÃO AUTOMÁTICA DA UI (Coleções e Bloqueio de Input) ---
+    const collectionsHTML = `
+      <option value="BR1">Coleção BR1</option>
+      <option value="BR2">Coleção BR2</option>
+      <option value="IArt">Coleção IArt</option>
+    `;
+
     const versionSelect = document.getElementById("admin-card-version");
     if (versionSelect && !versionSelect.hasAttribute('data-options-set')) {
-      // Substitui as opções antigas do HTML pelas novas dinamicamente
-      versionSelect.innerHTML = `
-        <option value="BR1">Coleção BR1</option>
-        <option value="BR2">Coleção BR2</option>
-        <option value="IArt">Coleção IArt</option>
-      `;
+      versionSelect.innerHTML = collectionsHTML;
       versionSelect.setAttribute('data-options-set', 'true');
+    }
+
+    const renumSelect = document.getElementById("admin-renum-version");
+    if (renumSelect && !renumSelect.hasAttribute('data-options-set')) {
+      renumSelect.innerHTML = collectionsHTML;
+      renumSelect.setAttribute('data-options-set', 'true');
+    }
+
+    // Varredura para arrumar qualquer outro select esquecido no HTML com as coleções antigas (Filtros, Renumeração, etc)
+    const adminTab = document.getElementById("tab-admin");
+    if (adminTab) {
+      const allSelects = adminTab.querySelectorAll('select');
+      allSelects.forEach(select => {
+        if (select.innerHTML.includes('Vol. ') && !select.hasAttribute('data-options-set')) {
+          // Mantém opção 'Todas' se for um filtro de busca
+          if (select.innerHTML.includes('Todas')) {
+            select.innerHTML = '<option value="">Todas as Coleções</option>' + collectionsHTML;
+          } else {
+            select.innerHTML = collectionsHTML;
+          }
+          select.setAttribute('data-options-set', 'true');
+        }
+      });
     }
 
     const numberInput = document.getElementById("admin-card-number");
@@ -95,7 +119,7 @@ window.loadCardsCache = async () => {
       if (window.updateAllCardDependentUI) window.updateAllCardDependentUI();
     }
 
-    // Adiciona listener para recalcular o número automaticamente quando mudar a coleção
+    // Adiciona listener para recalcular o número automaticamente quando mudar a coleção no form principal
     if (versionSelect && !versionSelect.hasAttribute('data-listener')) {
       versionSelect.addEventListener("change", window.suggestNextCardNumber);
       versionSelect.setAttribute('data-listener', 'true');
