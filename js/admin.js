@@ -107,7 +107,7 @@ window.loadCardsCache = async () => {
   } catch (err) { console.error("Erro ao carregar cartas:", err); }
 };
 
-// ── Manutenção / Cadastros ────────────────────────────────────
+// ── Manutenção / Cadastros / Controle de Coleções ─────────────
 
 window.toggleRegistration = async () => {
   if (!window.currentUser || window.userData.role !== "admin") return;
@@ -133,15 +133,93 @@ window.toggleMaintenance = async () => {
   }
 };
 
+// Lógica de gerenciar Coleções Ativas dinamicamente
+window.toggleCollectionState = async (collectionName) => {
+  if (!window.currentUser || window.userData.role !== "admin") return;
+  const gs = window.globalSettings || {};
+  let active = gs.activeCollections || ["BR1", "BR2", "IArt"]; // Default
+  
+  if (active.includes(collectionName)) {
+    active = active.filter(c => c !== collectionName); // Desliga
+  } else {
+    active.push(collectionName); // Liga
+  }
+
+  try {
+    await setDoc(doc(db, "settings", "global"), { activeCollections: active }, { merge: true });
+    await window.logSystemAction(`Admin ${window.currentUser.displayName} alterou a coleção ${collectionName} para ${active.includes(collectionName) ? 'ATIVA' : 'INATIVA'}.`);
+    window.showMessage(`Coleção ${collectionName} ${active.includes(collectionName) ? "LIGADA" : "DESLIGADA"}!`);
+  } catch(e) {
+    window.showMessage("Erro: " + e.message);
+  }
+};
+
+window.renderAdminCollectionsConfig = () => {
+  let container = document.getElementById('admin-collections-config');
+  const maintEl = document.getElementById('admin-maint-status');
+  
+  if (!container && maintEl) {
+    container = document.createElement('div');
+    container.id = 'admin-collections-config';
+    container.className = 'bg-gray-800 p-4 rounded-xl border border-gray-700 mt-4';
+    const parentBox = maintEl.closest('.bg-gray-800') || maintEl.parentElement;
+    parentBox.after(container);
+  } else if (!container) {
+    return; // Se não achar o painel de status de manutenção, ignora.
+  }
+
+  const gs = window.globalSettings || {};
+  const active = gs.activeCollections || ["BR1", "BR2", "IArt"];
+  
+  // Puxa as coleções ativas no banco de cartas para o painel dinamicamente
+  const dynamicColls = new Set(["BR1", "BR2", "IArt"]);
+  if (window.cardDatabase) {
+    window.cardDatabase.forEach(c => {
+      if (c.cardVersion) dynamicColls.add(c.cardVersion);
+    });
+  }
+
+  let html = `<h3 class="text-lg font-bold text-white mb-3">Gerenciar Coleções na Roleta</h3><div class="flex flex-wrap gap-3">`;
+  
+  dynamicColls.forEach(col => {
+    const isActive = active.includes(col);
+    const color = isActive ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 border border-red-400 hover:bg-red-500';
+    html += `
+      <button onclick="window.toggleCollectionState('${col}')" class="${color} text-white px-4 py-2 rounded-lg font-bold text-sm transition shadow-lg flex items-center gap-2">
+        <span>${col}</span>
+        <span class="text-xs bg-black/30 px-1.5 py-0.5 rounded">${isActive ? 'ATIVA' : 'PAUSADA'}</span>
+      </button>`;
+  });
+  
+  html += `</div><p class="text-xs text-gray-400 mt-2">Coleções pausadas não cairão mais nos pacotes sorteados pelos jogadores. Elas voltam a cair instantaneamente quando reativadas.</p>`;
+  container.innerHTML = html;
+};
+
+// Intercepta a atualização do app.js para injetar e atualizar o painel de coleções automaticamente!
+const originalApplySettings = window.applyGlobalSettingsUI;
+window.applyGlobalSettingsUI = () => {
+  if (originalApplySettings) originalApplySettings();
+  if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
+};
+
 // ── Dar/remover pacotes de um usuário — via CF ─────────
 window.addPacksToUser = async (uid, playerName, type, amount, event) => {
   if (!window.currentUser || window.userData.role !== "admin") return;
+  
+  // PROMPT PARA O MOTIVO (Apenas se estiver adicionando pacotes positivos)
+  let reason = "Ajuste manual do Admin";
+  if (amount > 0) {
+    const userInput = prompt(`Adicionar ${amount} pacote(s) ${type === 'premium' ? 'Premium' : 'Básico(s)'} para ${playerName}.\n\nDigite o motivo (Aparecerá na aba de notificações dele):`, "Recompensa de Evento!");
+    if (userInput === null) return; // Cancelou no prompt
+    if (userInput.trim() !== "") reason = userInput.trim();
+  }
+
   const btn = event.currentTarget;
   const origText = btn.innerText;
   btn.innerText = "...";
   btn.disabled  = true;
   try {
-    await callAdminCF("adminAddPacks", { targetUid: uid, type, amount });
+    await callAdminCF("adminAddPacks", { targetUid: uid, type, amount, reason });
     await window.loadAdminPlayersLog();
   } catch (err) {
     window.showMessage("Erro ao alterar pacotes: " + err.message);
@@ -160,10 +238,14 @@ window.sendPacksToAll = async (e) => {
   if (isNaN(amount) || amount <= 0) return window.showMessage("Insira uma quantidade válida.");
   const typeName = type === "premium" ? "Premium" : "Básicos";
 
-  window.showMessage(`Vai enviar ${amount} pacotes ${typeName} para TODOS os jogadores. Deseja continuar?`, true, async () => {
+  // PROMPT PARA O MOTIVO GLOBAL
+  const reason = prompt(`Motivo para enviar para TODOS os ninjas?\n\n(Eles receberão uma notificação)`, "Presente Global do Admin!");
+  if (reason === null) return; // Cancelou no prompt
+
+  window.showMessage(`Vai enviar ${amount} pacotes ${typeName} para TODOS. Deseja continuar?`, true, async () => {
     if (btn) { btn.disabled = true; btn.innerText = "Processando..."; }
     try {
-      const result = await callAdminCF("adminSendPacksToAll", { type, amount });
+      const result = await callAdminCF("adminSendPacksToAll", { type, amount, reason });
       window.showMessage(`${amount} pacotes ${typeName} enviados para ${result.totalAffected} ninjas!`);
       const amtInput = document.getElementById("admin-bulk-amount");
       if (amtInput) amtInput.value = "";
