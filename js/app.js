@@ -308,41 +308,51 @@ function initApp() {
     const maxTens = Math.floor(totalOpened / 10);
     const tensIsReady = maxTens > claimedTens;
 
+    // Helper para gerar as shurikens nos títulos das missões
+    const getAchievShuriken = (colorClass) => `
+      <span class="inline-block ml-1 align-text-bottom">
+        <svg viewBox="0 0 24 24" class="w-6 h-6 ${colorClass} fill-gray-800 stroke-2" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
+          <circle cx="12" cy="12" r="2.5" class="fill-gray-900" />
+        </svg>
+      </span>
+    `;
+
     const achievements = [
       {
-        id: 'first5', title: 'Primeiros Passos',
+        id: 'first5', title: 'Primeiros Passos 🚶‍♂️',
         desc: 'Abra 5 pacotes básicos. <br><span class="text-[10px] text-gray-500">Prêmio: +5 Pacotes Básicos</span>',
         isReady: totalOpened >= 5, isClaimed: ud.claimedAchievements?.first5,
         type: 'basic_pulls', progress: `${Math.min(5, totalOpened)}/5`
       },
       {
-        id: 'tens', title: 'Veterano Constante',
+        id: 'tens', title: 'Veterano Constante 🔁',
         desc: 'A cada 10 pacotes abertos, ganhe 1 Premium.<br><span class="text-[10px] text-gray-500">Prêmio: Pacote Premium (S/SS)</span>',
         isReady: tensIsReady, isClaimed: false,
         type: 'premium', progress: `${totalOpened % 10}/10`, isRepeatable: true
       },
       {
-        id: 'tierC', title: 'Colecionador Rank C 🥉',
+        id: 'tierC', title: 'Colecionador Rank C ' + getAchievShuriken('stroke-green-400 drop-shadow-[0_0_3px_rgba(74,222,128,0.8)]'),
         desc: 'Obtenha todas as cartas Rank C.<br><span class="text-[10px] text-gray-500">Prêmio: Pacote Premium</span>',
         isReady: window.checkTierComplete('C'), isClaimed: ud.claimedAchievements?.tierC, type: 'premium'
       },
       {
-        id: 'tierB', title: 'Colecionador Rank B 🥈',
+        id: 'tierB', title: 'Colecionador Rank B ' + getAchievShuriken('stroke-blue-400 drop-shadow-[0_0_3px_rgba(96,165,250,0.8)]'),
         desc: 'Obtenha todas as cartas Rank B.<br><span class="text-[10px] text-gray-500">Prêmio: Pacote Premium</span>',
         isReady: window.checkTierComplete('B'), isClaimed: ud.claimedAchievements?.tierB, type: 'premium'
       },
       {
-        id: 'tierA', title: 'Colecionador Rank A 🥇',
+        id: 'tierA', title: 'Colecionador Rank A ' + getAchievShuriken('stroke-purple-400 drop-shadow-[0_0_3px_rgba(192,132,252,0.8)]'),
         desc: 'Obtenha todas as cartas Rank A.<br><span class="text-[10px] text-gray-500">Prêmio: Pacote Premium</span>',
         isReady: window.checkTierComplete('A'), isClaimed: ud.claimedAchievements?.tierA, type: 'premium'
       },
       {
-        id: 'tierS', title: 'Colecionador Rank S 💎',
+        id: 'tierS', title: 'Colecionador Rank S ' + getAchievShuriken('stroke-yellow-400 drop-shadow-[0_0_4px_rgba(250,204,21,0.8)]'),
         desc: 'Obtenha todas as cartas Rank S.<br><span class="text-[10px] text-gray-500">Prêmio: Pacote Premium</span>',
         isReady: window.checkTierComplete('S'), isClaimed: ud.claimedAchievements?.tierS, type: 'premium'
       },
       {
-        id: 'tierSS', title: 'Colecionador Rank SS 🌟',
+        id: 'tierSS', title: 'Colecionador Rank SS ' + getAchievShuriken('stroke-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,1)] animate-pulse'),
         desc: 'Obtenha todas as cartas Rank SS.<br><span class="text-[10px] text-gray-500">Prêmio: Pacote Premium</span>',
         isReady: window.checkTierComplete('SS'), isClaimed: ud.claimedAchievements?.tierSS, type: 'premium'
       }
@@ -498,6 +508,7 @@ function initApp() {
     // window.isOpeningAchiev volta a false em closeAchievOverlay() (gacha.js)
   };
 
+  // Aqui é onde fica a Shuriken global (inclusive no cabeçalho) com o Title Consertado!
   window.getUserMedals = (inventory) => {
     if (!inventory || !window.cardDatabase) return '';
 
@@ -512,11 +523,14 @@ function initApp() {
       }
     });
 
+    // O truque mestre: Envolver o SVG numa tag <span> que controla o hover (title)
     const getShuriken = (colorClass, title) => `
-      <svg title="${title}" viewBox="0 0 24 24" class="w-5 h-5 inline-block mx-[1px] ${colorClass} fill-gray-800 stroke-2 cursor-help transition-transform hover:scale-125" xmlns="http://www.w3.org/2000/svg">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
-        <circle cx="12" cy="12" r="2.5" class="fill-gray-900" />
-      </svg>
+      <span title="${title}" class="inline-block mx-[2px] cursor-help transition-transform hover:scale-125">
+        <svg viewBox="0 0 24 24" class="w-5 h-5 ${colorClass} fill-gray-800 stroke-2" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
+          <circle cx="12" cy="12" r="2.5" class="fill-gray-900" />
+        </svg>
+      </span>
     `;
 
     if (tierTotals.C > 0 && tierCounts.C >= tierTotals.C) medals.push(getShuriken('stroke-green-400 drop-shadow-[0_0_3px_rgba(74,222,128,0.8)]', 'Coleção C Completa!'));
@@ -529,10 +543,12 @@ function initApp() {
     const totalOwned = Object.values(tierCounts).reduce((a, b) => a + b, 0);
     if (totalCards > 0 && totalOwned >= totalCards) {
        medals.push(`
-        <svg title="Mestre Ninja! Todas as cartas do jogo." viewBox="0 0 24 24" class="w-6 h-6 inline-block mx-[1px] stroke-yellow-200 fill-yellow-500 stroke-2 cursor-help drop-shadow-[0_0_8px_rgba(250,204,21,1)] animate-[spin_3s_linear_infinite]" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9L12 2Z" />
-          <circle cx="12" cy="12" r="3" class="fill-yellow-900" />
-        </svg>
+        <span title="Mestre Ninja! Todas as cartas do jogo." class="inline-block mx-[2px] cursor-help transition-transform hover:scale-125">
+          <svg viewBox="0 0 24 24" class="w-6 h-6 stroke-yellow-200 fill-yellow-500 stroke-2 drop-shadow-[0_0_8px_rgba(250,204,21,1)] animate-[spin_3s_linear_infinite]" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9L12 2Z" />
+            <circle cx="12" cy="12" r="3" class="fill-yellow-900" />
+          </svg>
+        </span>
        `);
     }
 
