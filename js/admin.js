@@ -202,29 +202,98 @@ window.applyGlobalSettingsUI = () => {
   if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
 };
 
+// ── Helper: Modal Customizado para Motivo (Prompt Admin) ──────
+window.showAdminPrompt = (titleText, defaultText, callback) => {
+  let modal = document.getElementById("admin-custom-prompt");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "admin-custom-prompt";
+    modal.className = "fixed inset-0 bg-gray-900/95 backdrop-blur-sm z-[9999] hidden flex-col items-center justify-center p-4";
+    modal.innerHTML = `
+      <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl transform transition-all scale-95 opacity-0 duration-200" id="admin-custom-prompt-box">
+        <h3 class="text-xl font-black text-white mb-2" id="admin-custom-prompt-title"></h3>
+        <p class="text-sm text-gray-400 mb-4">Digite o motivo (Aparecerá na aba de notificações):</p>
+        <input type="text" id="admin-custom-prompt-input" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white mb-6 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition placeholder-gray-600" autocomplete="off" />
+        <div class="flex justify-end gap-3">
+          <button id="admin-custom-prompt-cancel" class="px-4 py-2 rounded-lg font-bold text-gray-400 hover:text-white hover:bg-gray-700 transition">Cancelar</button>
+          <button id="admin-custom-prompt-confirm" class="px-4 py-2 rounded-lg font-bold text-white bg-purple-600 hover:bg-purple-500 transition shadow-lg">Confirmar Envio</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  const titleEl = document.getElementById("admin-custom-prompt-title");
+  const inputEl = document.getElementById("admin-custom-prompt-input");
+  const cancelBtn = document.getElementById("admin-custom-prompt-cancel");
+  const confirmBtn = document.getElementById("admin-custom-prompt-confirm");
+  const box = document.getElementById("admin-custom-prompt-box");
+
+  titleEl.innerHTML = titleText;
+  inputEl.value = defaultText;
+
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+  
+  // Animação de entrada
+  setTimeout(() => {
+    box.classList.remove("scale-95", "opacity-0");
+    box.classList.add("scale-100", "opacity-100");
+    inputEl.focus();
+    inputEl.select();
+  }, 10);
+
+  const cleanup = () => {
+    box.classList.remove("scale-100", "opacity-100");
+    box.classList.add("scale-95", "opacity-0");
+    setTimeout(() => {
+      modal.classList.remove("flex");
+      modal.classList.add("hidden");
+    }, 200);
+    cancelBtn.onclick = null;
+    confirmBtn.onclick = null;
+    inputEl.onkeydown = null;
+  };
+
+  cancelBtn.onclick = () => { cleanup(); callback(null); };
+  confirmBtn.onclick = () => { cleanup(); callback(inputEl.value.trim()); };
+  inputEl.onkeydown = (e) => {
+    if (e.key === "Enter") confirmBtn.click();
+    if (e.key === "Escape") cancelBtn.click();
+  };
+};
+
 // ── Dar/remover pacotes de um usuário — via CF ─────────
 window.addPacksToUser = async (uid, playerName, type, amount, event) => {
   if (!window.currentUser || window.userData.role !== "admin") return;
-  
-  // PROMPT PARA O MOTIVO (Apenas se estiver adicionando pacotes positivos)
-  let reason = "Ajuste manual do Admin";
-  if (amount > 0) {
-    const userInput = prompt(`Adicionar ${amount} pacote(s) ${type === 'premium' ? 'Premium' : 'Básico(s)'} para ${playerName}.\n\nDigite o motivo (Aparecerá na aba de notificações dele):`, "Recompensa de Evento!");
-    if (userInput === null) return; // Cancelou no prompt
-    if (userInput.trim() !== "") reason = userInput.trim();
-  }
-
   const btn = event.currentTarget;
-  const origText = btn.innerText;
-  btn.innerText = "...";
-  btn.disabled  = true;
-  try {
-    await callAdminCF("adminAddPacks", { targetUid: uid, type, amount, reason });
-    await window.loadAdminPlayersLog();
-  } catch (err) {
-    window.showMessage("Erro ao alterar pacotes: " + err.message);
-    btn.innerText = origText;
-    btn.disabled  = false;
+
+  const processAdd = async (reason) => {
+    const origText = btn.innerText;
+    btn.innerText = "...";
+    btn.disabled  = true;
+    try {
+      await callAdminCF("adminAddPacks", { targetUid: uid, type, amount, reason });
+      await window.loadAdminPlayersLog();
+    } catch (err) {
+      window.showMessage("Erro ao alterar pacotes: " + err.message);
+      btn.innerText = origText;
+      btn.disabled  = false;
+    }
+  };
+
+  // PROMPT CUSTOMIZADO (Apenas se estiver adicionando pacotes positivos)
+  if (amount > 0) {
+    window.showAdminPrompt(
+      `🎁 Presentear ${playerName}`,
+      "Recompensa de Evento!",
+      (userInput) => {
+        if (userInput === null) return; // Cancelou no prompt
+        processAdd(userInput !== "" ? userInput : "Ajuste manual do Admin");
+      }
+    );
+  } else {
+    processAdd("Ajuste manual do Admin");
   }
 };
 
@@ -238,24 +307,30 @@ window.sendPacksToAll = async (e) => {
   if (isNaN(amount) || amount <= 0) return window.showMessage("Insira uma quantidade válida.");
   const typeName = type === "premium" ? "Premium" : "Básicos";
 
-  // PROMPT PARA O MOTIVO GLOBAL
-  const reason = prompt(`Motivo para enviar para TODOS os ninjas?\n\n(Eles receberão uma notificação)`, "Presente Global do Admin!");
-  if (reason === null) return; // Cancelou no prompt
+  // PROMPT CUSTOMIZADO PARA O MOTIVO GLOBAL
+  window.showAdminPrompt(
+    `🌍 Enviar para TODOS os ninjas`,
+    "Presente Global do Admin!",
+    (userInput) => {
+      if (userInput === null) return; // Cancelou no prompt
+      const reason = userInput !== "" ? userInput : "Presente Global do Admin!";
 
-  window.showMessage(`Vai enviar ${amount} pacotes ${typeName} para TODOS. Deseja continuar?`, true, async () => {
-    if (btn) { btn.disabled = true; btn.innerText = "Processando..."; }
-    try {
-      const result = await callAdminCF("adminSendPacksToAll", { type, amount, reason });
-      window.showMessage(`${amount} pacotes ${typeName} enviados para ${result.totalAffected} ninjas!`);
-      const amtInput = document.getElementById("admin-bulk-amount");
-      if (amtInput) amtInput.value = "";
-      if (window.loadAdminPlayersLog) window.loadAdminPlayersLog();
-    } catch (err) {
-      window.showMessage("Erro ao enviar pacotes: " + err.message);
-    } finally {
-      if (btn) { btn.disabled = false; btn.innerText = "Enviar para TODOS"; }
+      window.showMessage(`Vai enviar ${amount} pacotes ${typeName} para TODOS. Deseja continuar?`, true, async () => {
+        if (btn) { btn.disabled = true; btn.innerText = "Processando..."; }
+        try {
+          const result = await callAdminCF("adminSendPacksToAll", { type, amount, reason });
+          window.showMessage(`${amount} pacotes ${typeName} enviados para ${result.totalAffected} ninjas!`);
+          const amtInput = document.getElementById("admin-bulk-amount");
+          if (amtInput) amtInput.value = "";
+          if (window.loadAdminPlayersLog) window.loadAdminPlayersLog();
+        } catch (err) {
+          window.showMessage("Erro ao enviar pacotes: " + err.message);
+        } finally {
+          if (btn) { btn.disabled = false; btn.innerText = "Enviar para TODOS"; }
+        }
+      });
     }
-  });
+  );
 };
 
 // ── Excluir carta — via CF ─────────────────────────────
