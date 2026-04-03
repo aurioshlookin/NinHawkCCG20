@@ -179,18 +179,28 @@ window.toggleCollectionState = async (collectionName) => {
   }
 };
 
-// Injeta o Super Painel (Status de Sistema e Coleções) dinamicamente no topo da aba Admin
+// Injeta o Super Painel (Status de Sistema e Coleções) dinamicamente logo acima dos Logs
 window.renderAdminCollectionsConfig = () => {
-  const adminTab = document.getElementById('tab-admin');
-  if (!adminTab) return; // Se a aba não existir, cancela
-
   let container = document.getElementById('admin-system-controls-container');
   
-  // Se o container não existe, cria ele e o coloca como o PRIMEIRO elemento da aba Admin
+  // Se o container não existe, cria ele e o coloca ACIMA do painel de Logs de Movimentações
   if (!container) {
     container = document.createElement('div');
     container.id = 'admin-system-controls-container';
-    adminTab.prepend(container); // Prepend garante que ele entra no topo absoluto
+    
+    // Procura a tabela de logs pelo ID do corpo (tbody)
+    const logsList = document.getElementById('admin-players-list');
+    if (!logsList) return; // Se a tabela não existir, cancela a renderização por enquanto
+
+    // Encontra a div-mãe (caixa escura com a borda) que envolve a tabela
+    const logsPanel = logsList.closest('.bg-gray-800') || logsList.parentElement.parentElement;
+    
+    // Insere o container exatamente ANTES dessa caixa
+    if (logsPanel && logsPanel.parentNode) {
+      logsPanel.parentNode.insertBefore(container, logsPanel);
+    } else {
+      return;
+    }
   }
 
   const gs = window.globalSettings || {};
@@ -219,7 +229,7 @@ window.renderAdminCollectionsConfig = () => {
   
   // Renderiza todo o Dashboard
   container.innerHTML = `
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 mt-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
       <!-- PAINEL: STATUS DO SISTEMA -->
       <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 shadow-lg">
         <h3 class="text-white font-bold mb-3 flex items-center gap-2">
