@@ -138,11 +138,20 @@ window.loadCardsCache = async () => {
 window.toggleRegistration = async () => {
   if (!window.currentUser || window.userData.role !== "admin") return;
   const newState = !window.globalSettings.registrationsOpen;
+  
+  // Atualiza a memória local NA HORA e repinta a tela (Instantâneo)
+  if (!window.globalSettings) window.globalSettings = {};
+  window.globalSettings.registrationsOpen = newState;
+  if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
+
   try {
     await setDoc(doc(db, "settings", "global"), { registrationsOpen: newState }, { merge: true });
     await window.logSystemAction(`Admin ${window.currentUser.displayName} ${newState ? "ATIVOU" : "DESATIVOU"} os cadastros do servidor.`);
     window.showMessage(newState ? "Cadastros LIGADOS com sucesso." : "Cadastros DESLIGADOS com sucesso.");
   } catch (e) {
+    // Reverte em caso de erro
+    window.globalSettings.registrationsOpen = !newState;
+    if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
     window.showMessage("Erro ao alterar: " + e.message);
   }
 };
@@ -150,11 +159,20 @@ window.toggleRegistration = async () => {
 window.toggleMaintenance = async () => {
   if (!window.currentUser || window.userData.role !== "admin") return;
   const newState = !window.globalSettings.maintenanceMode;
+  
+  // Atualiza a memória local NA HORA e repinta a tela (Instantâneo)
+  if (!window.globalSettings) window.globalSettings = {};
+  window.globalSettings.maintenanceMode = newState;
+  if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
+
   try {
     await setDoc(doc(db, "settings", "global"), { maintenanceMode: newState }, { merge: true });
     await window.logSystemAction(`Admin ${window.currentUser.displayName} ${newState ? "ATIVOU" : "DESATIVOU"} o modo manutenção.`);
     window.showMessage(newState ? "Modo Manutenção LIGADO." : "Modo Manutenção DESLIGADO.");
   } catch (e) {
+    // Reverte em caso de erro
+    window.globalSettings.maintenanceMode = !newState;
+    if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
     window.showMessage("Erro ao alterar: " + e.message);
   }
 };
@@ -169,6 +187,10 @@ window.toggleCollectionState = async (collectionName) => {
   } else {
     active.push(collectionName); // Liga
   }
+
+  // Atualiza a memória local NA HORA e repinta a tela (Instantâneo)
+  window.globalSettings.activeCollections = active;
+  if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
 
   try {
     await setDoc(doc(db, "settings", "global"), { activeCollections: active }, { merge: true });
@@ -206,7 +228,7 @@ window.renderAdminCollectionsConfig = () => {
   const gs = window.globalSettings || {};
   const active = gs.activeCollections || ["BR1", "BR2", "IArt"];
   const isMaint = gs.maintenanceMode || false;
-  const isReg = gs.registrationsOpen || false;
+  const isReg = gs.registrationsOpen !== false; // Default para true se undefined
   
   // Puxa as coleções do banco de cartas para renderizar os botões dinamicamente
   const dynamicColls = new Set(["BR1", "BR2", "IArt"]);
@@ -270,6 +292,24 @@ const originalApplySettings = window.applyGlobalSettingsUI;
 window.applyGlobalSettingsUI = () => {
   if (originalApplySettings) originalApplySettings();
   if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
+
+  // Esconde o botão de login/cadastro do Discord instantaneamente se fechado
+  const gs = window.globalSettings || {};
+  const isRegOpen = gs.registrationsOpen !== false; // Default true
+  
+  // Procura pelo botão de login com Discord pelo ID ou por conteúdo
+  const loginBtns = document.querySelectorAll('#btn-login, #discord-login-btn, button[onclick*="discordAuth"], button[onclick*="login"]');
+  
+  loginBtns.forEach(btn => {
+    // Só esconde o botão se o usuário não estiver logado
+    if (!window.currentUser) {
+      if (!isRegOpen) {
+        btn.classList.add('hidden'); // Esconde o botão de login
+      } else {
+        btn.classList.remove('hidden'); // Mostra o botão de login
+      }
+    }
+  });
 };
 
 // Força a renderização inicial caso atrase
