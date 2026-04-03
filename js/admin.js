@@ -146,7 +146,8 @@ window.toggleRegistration = async () => {
   if (!window.globalSettings) window.globalSettings = {};
   window.globalSettings.registrationsOpen = newState;
   
-  // 2. Repinta a tela INSTANTANEAMENTE (sem mensagens chatas)
+  // 2. Repinta o painel de Admin e a UI Global INSTANTANEAMENTE (sem mensagens chatas)
+  if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
   if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
 
   try {
@@ -155,6 +156,7 @@ window.toggleRegistration = async () => {
   } catch (e) {
     // Reverte em caso de erro no banco
     window.globalSettings.registrationsOpen = currentState;
+    if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
     if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
     window.showMessage("Erro ao alterar: " + e.message);
   }
@@ -171,7 +173,8 @@ window.toggleMaintenance = async () => {
   if (!window.globalSettings) window.globalSettings = {};
   window.globalSettings.maintenanceMode = newState;
   
-  // 2. Repinta a tela INSTANTANEAMENTE
+  // 2. Repinta o painel de Admin e a UI Global INSTANTANEAMENTE
+  if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
   if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
 
   try {
@@ -180,6 +183,7 @@ window.toggleMaintenance = async () => {
   } catch (e) {
     // Reverte em caso de erro no banco
     window.globalSettings.maintenanceMode = currentState;
+    if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
     if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
     window.showMessage("Erro ao alterar: " + e.message);
   }
