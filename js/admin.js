@@ -33,19 +33,23 @@ window.suggestNextCardNumber = () => {
   if (!versionSelect || !numberInput || !window.cardDatabase) return;
 
   const version = versionSelect.value || "BR1";
+  // Filtra de forma estrita para pegar SÓ as cartas da coleção selecionada
   const cardsInVersion = window.cardDatabase.filter(c => c.cardVersion === version);
 
   let maxNum = 0;
   cardsInVersion.forEach(c => {
-    // Pega apenas a parte numérica do final da string (ex: "BR2-015" extrai "015")
-    const match = String(c.cardNumber).match(/\d+$/);
+    // Isola o número do sufixo (ex: de "BR2-015" extrai apenas "015")
+    const parts = String(c.cardNumber).split('-');
+    const numStr = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+    const match = numStr.match(/\d+$/);
+    
     if (match) {
       const num = parseInt(match[0], 10);
       if (num > maxNum) maxNum = num;
     }
   });
 
-  // Incrementa 1 e formata com 3 zeros. Adiciona o prefixo da coleção.
+  // Incrementa 1 e formata com 3 zeros (Se não houver cartas, será 0 + 1 = 001)
   const nextNum = String(maxNum + 1).padStart(3, '0');
   numberInput.value = `${version}-${nextNum}`;
   
@@ -157,7 +161,6 @@ window.toggleMaintenance = async () => {
   }
 };
 
-// Lógica de gerenciar Coleções Ativas dinamicamente
 window.toggleCollectionState = async (collectionName) => {
   if (!window.currentUser || window.userData.role !== "admin") return;
   const gs = window.globalSettings || {};
@@ -178,22 +181,30 @@ window.toggleCollectionState = async (collectionName) => {
   }
 };
 
+// Injeta o Super Painel (Status de Sistema e Coleções) dinamicamente no topo da aba Admin
 window.renderAdminCollectionsConfig = () => {
-  let container = document.getElementById('admin-collections-config');
-  const maintEl = document.getElementById('admin-maint-status');
-  
-  if (!container && maintEl) {
+  let container = document.getElementById('admin-system-controls-container');
+  const adminTab = document.getElementById('tab-admin');
+  if (!adminTab) return; // Se a aba não existir, cancela
+
+  // Se o container não existe, cria ele no topo da aba
+  if (!container) {
     container = document.createElement('div');
-    container.id = 'admin-collections-config';
-    container.className = 'bg-gray-800 p-4 rounded-xl border border-gray-700 mt-4';
-    const parentBox = maintEl.closest('.bg-gray-800') || maintEl.parentElement;
-    parentBox.after(container);
-  } else if (!container) {
-    return; // Se não achar o painel de status de manutenção, ignora.
+    container.id = 'admin-system-controls-container';
+    
+    // Tenta injetar logo abaixo do título <h2> principal, senão joga no topo
+    const header = adminTab.querySelector('h2');
+    if (header) {
+      header.after(container);
+    } else {
+      adminTab.prepend(container);
+    }
   }
 
   const gs = window.globalSettings || {};
   const active = gs.activeCollections || ["BR1", "BR2", "IArt"];
+  const isMaint = gs.maintenanceMode || false;
+  const isReg = gs.registrationsOpen || false;
   
   // Puxa as coleções ativas no banco de cartas para o painel dinamicamente
   const dynamicColls = new Set(["BR1", "BR2", "IArt"]);
@@ -203,20 +214,53 @@ window.renderAdminCollectionsConfig = () => {
     });
   }
 
-  let html = `<h3 class="text-lg font-bold text-white mb-3">Gerenciar Coleções na Roleta</h3><div class="flex flex-wrap gap-3">`;
-  
+  let collsHtml = '';
   dynamicColls.forEach(col => {
     const isActive = active.includes(col);
     const color = isActive ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 border border-red-400 hover:bg-red-500';
-    html += `
-      <button onclick="window.toggleCollectionState('${col}')" class="${color} text-white px-4 py-2 rounded-lg font-bold text-sm transition shadow-lg flex items-center gap-2">
+    collsHtml += `
+      <button onclick="window.toggleCollectionState('${col}')" class="${color} text-white px-3 py-1.5 rounded-lg font-bold text-sm transition shadow flex items-center gap-2">
         <span>${col}</span>
-        <span class="text-xs bg-black/30 px-1.5 py-0.5 rounded">${isActive ? 'ATIVA' : 'PAUSADA'}</span>
+        <span class="text-[10px] bg-black/30 px-1.5 py-0.5 rounded">${isActive ? 'ATIVA' : 'PAUSADA'}</span>
       </button>`;
   });
   
-  html += `</div><p class="text-xs text-gray-400 mt-2">Coleções pausadas não cairão mais nos pacotes sorteados pelos jogadores. Elas voltam a cair instantaneamente quando reativadas.</p>`;
-  container.innerHTML = html;
+  // Renderiza todo o Dashboard
+  container.innerHTML = `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <!-- PAINEL: STATUS DO SISTEMA -->
+      <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 shadow-lg">
+        <h3 class="text-white font-bold mb-3 flex items-center gap-2">
+          <span>⚙️ Status do Servidor</span>
+        </h3>
+        <div class="flex flex-col gap-3">
+          <div class="flex justify-between items-center bg-gray-900 px-3 py-2 rounded-lg border border-gray-700">
+            <span class="text-sm font-semibold text-gray-300">Modo Manutenção:</span>
+            <button onclick="window.toggleMaintenance()" class="px-3 py-1 rounded text-xs font-bold transition shadow ${isMaint ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-400'}">
+              ${isMaint ? 'LIGADO' : 'DESLIGADO'}
+            </button>
+          </div>
+          <div class="flex justify-between items-center bg-gray-900 px-3 py-2 rounded-lg border border-gray-700">
+            <span class="text-sm font-semibold text-gray-300">Novos Cadastros:</span>
+            <button onclick="window.toggleRegistration()" class="px-3 py-1 rounded text-xs font-bold transition shadow ${isReg ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}">
+              ${isReg ? 'ABERTOS' : 'FECHADOS'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAINEL: COLEÇÕES ATIVAS -->
+      <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 shadow-lg">
+        <h3 class="text-white font-bold mb-3 flex items-center gap-2">
+          <span>📦 Coleções na Roleta</span>
+        </h3>
+        <div class="flex flex-wrap gap-2">
+          ${collsHtml}
+        </div>
+        <p class="text-[10px] text-gray-400 mt-3 leading-tight">Coleções pausadas não caem nos pacotes abertos pelos jogadores. Elas voltam imediatamente ao serem reativadas.</p>
+      </div>
+    </div>
+  `;
 };
 
 // Intercepta a atualização do app.js para injetar e atualizar o painel de coleções automaticamente!
