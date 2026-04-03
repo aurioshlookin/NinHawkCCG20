@@ -133,34 +133,7 @@ window.loadCardsCache = async () => {
   } catch (err) { console.error("Erro ao carregar cartas:", err); }
 };
 
-// ── Manutenção / Cadastros / Controle de Coleções (ATUALIZAÇÃO OTIMISTA) ─────────────
-
-window.toggleRegistration = async () => {
-  if (!window.currentUser || window.userData.role !== "admin") return;
-  
-  // O padrão é true (aberto) se for undefined. Lógica corrigida:
-  const currentState = window.globalSettings?.registrationsOpen !== false; 
-  const newState = !currentState;
-  
-  // 1. Atualiza a memória local NA HORA
-  if (!window.globalSettings) window.globalSettings = {};
-  window.globalSettings.registrationsOpen = newState;
-  
-  // 2. Repinta o painel de Admin e a UI Global INSTANTANEAMENTE (sem mensagens chatas)
-  if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
-  if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
-
-  try {
-    await setDoc(doc(db, "settings", "global"), { registrationsOpen: newState }, { merge: true });
-    await window.logSystemAction(`Admin ${window.currentUser.displayName} ${newState ? "ABRIU" : "FECHOU"} os cadastros.`);
-  } catch (e) {
-    // Reverte em caso de erro no banco
-    window.globalSettings.registrationsOpen = currentState;
-    if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
-    if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
-    window.showMessage("Erro ao alterar: " + e.message);
-  }
-};
+// ── Manutenção / Controle de Coleções (ATUALIZAÇÃO OTIMISTA) ─────────────
 
 window.toggleMaintenance = async () => {
   if (!window.currentUser || window.userData.role !== "admin") return;
@@ -248,7 +221,6 @@ window.renderAdminCollectionsConfig = () => {
   const gs = window.globalSettings || {};
   const active = gs.activeCollections || ["BR1", "BR2", "IArt"];
   const isMaint = gs.maintenanceMode === true; // Default false
-  const isReg = gs.registrationsOpen !== false; // Default true
   
   // Puxa as coleções do banco de cartas para renderizar os botões dinamicamente
   const dynamicColls = new Set(["BR1", "BR2", "IArt"]);
@@ -284,12 +256,7 @@ window.renderAdminCollectionsConfig = () => {
               ${isMaint ? 'LIGADO' : 'DESLIGADO'}
             </button>
           </div>
-          <div class="flex justify-between items-center bg-gray-900 px-3 py-2 rounded-lg border border-gray-700">
-            <span class="text-sm font-semibold text-gray-300">Novos Cadastros:</span>
-            <button onclick="window.toggleRegistration()" class="px-3 py-1 rounded text-xs font-bold transition shadow ${isReg ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}">
-              ${isReg ? 'ABERTOS' : 'FECHADOS'}
-            </button>
-          </div>
+          <!-- O botão de Novos Cadastros foi removido por segurança -->
         </div>
       </div>
 
@@ -312,24 +279,6 @@ const originalApplySettings = window.applyGlobalSettingsUI;
 window.applyGlobalSettingsUI = () => {
   if (originalApplySettings) originalApplySettings();
   if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
-
-  // Esconde o botão de login/cadastro do Discord instantaneamente se fechado
-  const gs = window.globalSettings || {};
-  const isRegOpen = gs.registrationsOpen !== false; // Default true
-  
-  // Procura pelo botão de login com Discord pelo ID ou por conteúdo
-  const loginBtns = document.querySelectorAll('#btn-login, #discord-login-btn, button[onclick*="discordAuth"], button[onclick*="login"]');
-  
-  loginBtns.forEach(btn => {
-    // Só esconde o botão se o usuário não estiver logado
-    if (!window.currentUser) {
-      if (!isRegOpen) {
-        btn.classList.add('hidden'); // Esconde o botão de login
-      } else {
-        btn.classList.remove('hidden'); // Mostra o botão de login
-      }
-    }
-  });
 };
 
 // Força a renderização inicial caso atrase
