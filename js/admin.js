@@ -133,24 +133,28 @@ window.loadCardsCache = async () => {
   } catch (err) { console.error("Erro ao carregar cartas:", err); }
 };
 
-// ── Manutenção / Cadastros / Controle de Coleções ─────────────
+// ── Manutenção / Cadastros / Controle de Coleções (ATUALIZAÇÃO OTIMISTA) ─────────────
 
 window.toggleRegistration = async () => {
   if (!window.currentUser || window.userData.role !== "admin") return;
-  const newState = !window.globalSettings.registrationsOpen;
   
-  // Atualiza a memória local NA HORA e repinta a tela (Instantâneo)
+  // O padrão é true (aberto) se for undefined. Lógica corrigida:
+  const currentState = window.globalSettings?.registrationsOpen !== false; 
+  const newState = !currentState;
+  
+  // 1. Atualiza a memória local NA HORA
   if (!window.globalSettings) window.globalSettings = {};
   window.globalSettings.registrationsOpen = newState;
+  
+  // 2. Repinta a tela INSTANTANEAMENTE (sem mensagens chatas)
   if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
 
   try {
     await setDoc(doc(db, "settings", "global"), { registrationsOpen: newState }, { merge: true });
-    await window.logSystemAction(`Admin ${window.currentUser.displayName} ${newState ? "ATIVOU" : "DESATIVOU"} os cadastros do servidor.`);
-    window.showMessage(newState ? "Cadastros LIGADOS com sucesso." : "Cadastros DESLIGADOS com sucesso.");
+    await window.logSystemAction(`Admin ${window.currentUser.displayName} ${newState ? "ABRIU" : "FECHOU"} os cadastros.`);
   } catch (e) {
-    // Reverte em caso de erro
-    window.globalSettings.registrationsOpen = !newState;
+    // Reverte em caso de erro no banco
+    window.globalSettings.registrationsOpen = currentState;
     if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
     window.showMessage("Erro ao alterar: " + e.message);
   }
@@ -158,20 +162,24 @@ window.toggleRegistration = async () => {
 
 window.toggleMaintenance = async () => {
   if (!window.currentUser || window.userData.role !== "admin") return;
-  const newState = !window.globalSettings.maintenanceMode;
   
-  // Atualiza a memória local NA HORA e repinta a tela (Instantâneo)
+  // O padrão é false (desligado) se for undefined.
+  const currentState = window.globalSettings?.maintenanceMode === true;
+  const newState = !currentState;
+  
+  // 1. Atualiza a memória local NA HORA
   if (!window.globalSettings) window.globalSettings = {};
   window.globalSettings.maintenanceMode = newState;
+  
+  // 2. Repinta a tela INSTANTANEAMENTE
   if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
 
   try {
     await setDoc(doc(db, "settings", "global"), { maintenanceMode: newState }, { merge: true });
-    await window.logSystemAction(`Admin ${window.currentUser.displayName} ${newState ? "ATIVOU" : "DESATIVOU"} o modo manutenção.`);
-    window.showMessage(newState ? "Modo Manutenção LIGADO." : "Modo Manutenção DESLIGADO.");
+    await window.logSystemAction(`Admin ${window.currentUser.displayName} ${newState ? "LIGOU" : "DESLIGOU"} o modo manutenção.`);
   } catch (e) {
-    // Reverte em caso de erro
-    window.globalSettings.maintenanceMode = !newState;
+    // Reverte em caso de erro no banco
+    window.globalSettings.maintenanceMode = currentState;
     if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
     window.showMessage("Erro ao alterar: " + e.message);
   }
@@ -181,8 +189,9 @@ window.toggleCollectionState = async (collectionName) => {
   if (!window.currentUser || window.userData.role !== "admin") return;
   const gs = window.globalSettings || {};
   let active = gs.activeCollections || ["BR1", "BR2", "IArt"]; // Default
+  const isCurrentlyActive = active.includes(collectionName);
   
-  if (active.includes(collectionName)) {
+  if (isCurrentlyActive) {
     active = active.filter(c => c !== collectionName); // Desliga
   } else {
     active.push(collectionName); // Liga
@@ -194,9 +203,16 @@ window.toggleCollectionState = async (collectionName) => {
 
   try {
     await setDoc(doc(db, "settings", "global"), { activeCollections: active }, { merge: true });
-    await window.logSystemAction(`Admin ${window.currentUser.displayName} alterou a coleção ${collectionName} para ${active.includes(collectionName) ? 'ATIVA' : 'INATIVA'}.`);
-    window.showMessage(`Coleção ${collectionName} ${active.includes(collectionName) ? "LIGADA" : "DESLIGADA"}!`);
+    await window.logSystemAction(`Admin ${window.currentUser.displayName} alterou a coleção ${collectionName} para ${!isCurrentlyActive ? 'ATIVA' : 'INATIVA'}.`);
   } catch(e) {
+    // Reverte em caso de erro
+    if (isCurrentlyActive) {
+      active.push(collectionName);
+    } else {
+      active = active.filter(c => c !== collectionName);
+    }
+    window.globalSettings.activeCollections = active;
+    if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
     window.showMessage("Erro: " + e.message);
   }
 };
@@ -227,8 +243,8 @@ window.renderAdminCollectionsConfig = () => {
 
   const gs = window.globalSettings || {};
   const active = gs.activeCollections || ["BR1", "BR2", "IArt"];
-  const isMaint = gs.maintenanceMode || false;
-  const isReg = gs.registrationsOpen !== false; // Default para true se undefined
+  const isMaint = gs.maintenanceMode === true; // Default false
+  const isReg = gs.registrationsOpen !== false; // Default true
   
   // Puxa as coleções do banco de cartas para renderizar os botões dinamicamente
   const dynamicColls = new Set(["BR1", "BR2", "IArt"]);
