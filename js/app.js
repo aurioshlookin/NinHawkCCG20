@@ -499,33 +499,44 @@ function initApp() {
   };
 
   window.getUserMedals = (inventory) => {
-    if (!inventory || !window.cardDatabase?.length) return '';
+    if (!inventory || !window.cardDatabase) return '';
 
-    const totalCounts = { C: 0, B: 0, A: 0, S: 0, SS: 0 };
-    window.cardDatabase.forEach(c => totalCounts[c.tier]++);
+    const medals = [];
+    const tierCounts = { C: 0, B: 0, A: 0, S: 0, SS: 0 };
+    const tierTotals = { C: 0, B: 0, A: 0, S: 0, SS: 0 };
 
-    const userCounts = { C: 0, B: 0, A: 0, S: 0, SS: 0 };
-    Object.keys(inventory).forEach(id => {
-      if (inventory[id] > 0) {
-        const c = window.cardDatabase.find(card => card.id === id);
-        if (c) userCounts[c.tier]++;
+    window.cardDatabase.forEach(card => {
+      tierTotals[card.tier] = (tierTotals[card.tier] || 0) + 1;
+      if ((inventory[card.id] || 0) > 0) {
+        tierCounts[card.tier] = (tierCounts[card.tier] || 0) + 1;
       }
     });
 
-    const hasC = totalCounts.C > 0 && userCounts.C === totalCounts.C;
-    const hasB = totalCounts.B > 0 && userCounts.B === totalCounts.B;
-    const hasA = totalCounts.A > 0 && userCounts.A === totalCounts.A;
-    const hasS = totalCounts.S > 0 && userCounts.S === totalCounts.S;
-    const hasSS = totalCounts.SS > 0 && userCounts.SS === totalCounts.SS;
-    const hasALL = hasC && hasB && hasA && hasS && hasSS;
+    const getShuriken = (colorClass, title) => `
+      <svg title="${title}" viewBox="0 0 24 24" class="w-5 h-5 inline-block mx-[1px] ${colorClass} fill-gray-800 stroke-2 cursor-help transition-transform hover:scale-125" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
+        <circle cx="12" cy="12" r="2.5" class="fill-gray-900" />
+      </svg>
+    `;
 
-    if (hasALL) return `<span title="Mestre Ninja Absoluto!" class="text-xl drop-shadow-[0_0_10px_#ff0000]">🔥</span>`;
-    if (hasSS) return `<span title="Colecionador Rank SS" class="text-xl drop-shadow-[0_0_5px_#ff00ff]">🌟</span>`;
-    if (hasS) return `<span title="Colecionador Rank S" class="text-xl drop-shadow-[0_0_5px_#00ffff]">💎</span>`;
-    if (hasA) return `<span title="Colecionador Rank A" class="text-xl drop-shadow-[0_0_5px_#ffd700]">🥇</span>`;
-    if (hasB) return `<span title="Colecionador Rank B" class="text-xl drop-shadow-[0_0_5px_#c0c0c0]">🥈</span>`;
-    if (hasC) return `<span title="Colecionador Rank C" class="text-xl drop-shadow-[0_0_5px_#cd7f32]">🥉</span>`;
-    return '';
+    if (tierTotals.C > 0 && tierCounts.C >= tierTotals.C) medals.push(getShuriken('stroke-green-400 drop-shadow-[0_0_3px_rgba(74,222,128,0.8)]', 'Coleção C Completa!'));
+    if (tierTotals.B > 0 && tierCounts.B >= tierTotals.B) medals.push(getShuriken('stroke-blue-400 drop-shadow-[0_0_3px_rgba(96,165,250,0.8)]', 'Coleção B Completa!'));
+    if (tierTotals.A > 0 && tierCounts.A >= tierTotals.A) medals.push(getShuriken('stroke-purple-400 drop-shadow-[0_0_3px_rgba(192,132,252,0.8)]', 'Coleção A Completa!'));
+    if (tierTotals.S > 0 && tierCounts.S >= tierTotals.S) medals.push(getShuriken('stroke-yellow-400 drop-shadow-[0_0_4px_rgba(250,204,21,0.8)]', 'Coleção S Completa!'));
+    if (tierTotals.SS > 0 && tierCounts.SS >= tierTotals.SS) medals.push(getShuriken('stroke-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,1)] animate-pulse', 'Coleção SS Completa!'));
+
+    const totalCards = window.cardDatabase.length;
+    const totalOwned = Object.values(tierCounts).reduce((a, b) => a + b, 0);
+    if (totalCards > 0 && totalOwned >= totalCards) {
+       medals.push(`
+        <svg title="Mestre Ninja! Todas as cartas do jogo." viewBox="0 0 24 24" class="w-6 h-6 inline-block mx-[1px] stroke-yellow-200 fill-yellow-500 stroke-2 cursor-help drop-shadow-[0_0_8px_rgba(250,204,21,1)] animate-[spin_3s_linear_infinite]" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9L12 2Z" />
+          <circle cx="12" cy="12" r="3" class="fill-yellow-900" />
+        </svg>
+       `);
+    }
+
+    return `<div class="flex items-center justify-center">${medals.join('')}</div>`;
   };
 
 } // fim initApp
@@ -535,4 +546,3 @@ if (window._firebaseReady) {
 } else {
   window.addEventListener('firebase-ready', initApp, { once: true });
 }
-
