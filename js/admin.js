@@ -26,14 +26,15 @@ async function callAdminCF(endpoint, body) {
 
 // ── Lógica de Numeração Automática (BR1-001, etc) ─────────────
 window.suggestNextCardNumber = () => {
-  if (editingCardId) return; // Não mudar numeração automaticamente se estiver editando uma carta antiga
+  if (editingCardId) return; // Não mudar numeração se estiver editando uma carta antiga
   
   const versionSelect = document.getElementById("admin-card-version");
   const numberInput = document.getElementById("admin-card-number");
   if (!versionSelect || !numberInput || !window.cardDatabase) return;
 
   const version = versionSelect.value || "BR1";
-  // Filtra de forma estrita para pegar SÓ as cartas da coleção selecionada
+  
+  // Filtra rigorosamente SÓ as cartas da coleção selecionada
   const cardsInVersion = window.cardDatabase.filter(c => c.cardVersion === version);
 
   let maxNum = 0;
@@ -49,7 +50,7 @@ window.suggestNextCardNumber = () => {
     }
   });
 
-  // Incrementa 1 e formata com 3 zeros (Se não houver cartas, será 0 + 1 = 001)
+  // Se não houver nenhuma carta na coleção, maxNum é 0. O próximo será 1 (001).
   const nextNum = String(maxNum + 1).padStart(3, '0');
   numberInput.value = `${version}-${nextNum}`;
   
@@ -59,7 +60,7 @@ window.suggestNextCardNumber = () => {
 // ── Carregamento do banco de cartas ───────────────────────────
 window.loadCardsCache = async () => {
   try {
-    // --- INJEÇÃO AUTOMÁTICA DA UI (Coleções e Bloqueio de Input) ---
+    // --- INJEÇÃO AUTOMÁTICA DA UI ---
     const collectionsHTML = `
       <option value="BR1">Coleção BR1</option>
       <option value="BR2">Coleção BR2</option>
@@ -70,6 +71,8 @@ window.loadCardsCache = async () => {
     if (versionSelect && !versionSelect.hasAttribute('data-options-set')) {
       versionSelect.innerHTML = collectionsHTML;
       versionSelect.setAttribute('data-options-set', 'true');
+      // Força o evento de mudança para recalcular o número imediatamente
+      versionSelect.onchange = window.suggestNextCardNumber; 
     }
 
     const renumSelect = document.getElementById("admin-renum-version");
@@ -78,13 +81,12 @@ window.loadCardsCache = async () => {
       renumSelect.setAttribute('data-options-set', 'true');
     }
 
-    // Varredura para arrumar qualquer outro select esquecido no HTML com as coleções antigas (Filtros, Renumeração, etc)
+    // Varredura para arrumar qualquer outro select esquecido no HTML com as coleções antigas
     const adminTab = document.getElementById("tab-admin");
     if (adminTab) {
       const allSelects = adminTab.querySelectorAll('select');
       allSelects.forEach(select => {
         if (select.innerHTML.includes('Vol. ') && !select.hasAttribute('data-options-set')) {
-          // Mantém opção 'Todas' se for um filtro de busca
           if (select.innerHTML.includes('Todas')) {
             select.innerHTML = '<option value="">Todas as Coleções</option>' + collectionsHTML;
           } else {
@@ -97,7 +99,6 @@ window.loadCardsCache = async () => {
 
     const numberInput = document.getElementById("admin-card-number");
     if (numberInput) {
-      // Bloqueia o campo para o usuário não digitar
       numberInput.readOnly = true;
       numberInput.classList.add("bg-gray-800", "text-gray-400", "cursor-not-allowed", "opacity-80");
       numberInput.title = "Numeração automática baseada na coleção";
@@ -123,14 +124,11 @@ window.loadCardsCache = async () => {
       if (window.updateAllCardDependentUI) window.updateAllCardDependentUI();
     }
 
-    // Adiciona listener para recalcular o número automaticamente quando mudar a coleção no form principal
-    if (versionSelect && !versionSelect.hasAttribute('data-listener')) {
-      versionSelect.addEventListener("change", window.suggestNextCardNumber);
-      versionSelect.setAttribute('data-listener', 'true');
-    }
-
     // Sugere o número da próxima carta assim que carregar o banco
     if (!editingCardId) window.suggestNextCardNumber();
+    
+    // Garante que o painel de configuração global vai aparecer
+    window.renderAdminCollectionsConfig();
 
   } catch (err) { console.error("Erro ao carregar cartas:", err); }
 };
@@ -183,22 +181,16 @@ window.toggleCollectionState = async (collectionName) => {
 
 // Injeta o Super Painel (Status de Sistema e Coleções) dinamicamente no topo da aba Admin
 window.renderAdminCollectionsConfig = () => {
-  let container = document.getElementById('admin-system-controls-container');
   const adminTab = document.getElementById('tab-admin');
   if (!adminTab) return; // Se a aba não existir, cancela
 
-  // Se o container não existe, cria ele no topo da aba
+  let container = document.getElementById('admin-system-controls-container');
+  
+  // Se o container não existe, cria ele e o coloca como o PRIMEIRO elemento da aba Admin
   if (!container) {
     container = document.createElement('div');
     container.id = 'admin-system-controls-container';
-    
-    // Tenta injetar logo abaixo do título <h2> principal, senão joga no topo
-    const header = adminTab.querySelector('h2');
-    if (header) {
-      header.after(container);
-    } else {
-      adminTab.prepend(container);
-    }
+    adminTab.prepend(container); // Prepend garante que ele entra no topo absoluto
   }
 
   const gs = window.globalSettings || {};
@@ -206,7 +198,7 @@ window.renderAdminCollectionsConfig = () => {
   const isMaint = gs.maintenanceMode || false;
   const isReg = gs.registrationsOpen || false;
   
-  // Puxa as coleções ativas no banco de cartas para o painel dinamicamente
+  // Puxa as coleções do banco de cartas para renderizar os botões dinamicamente
   const dynamicColls = new Set(["BR1", "BR2", "IArt"]);
   if (window.cardDatabase) {
     window.cardDatabase.forEach(c => {
@@ -227,7 +219,7 @@ window.renderAdminCollectionsConfig = () => {
   
   // Renderiza todo o Dashboard
   container.innerHTML = `
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 mt-4">
       <!-- PAINEL: STATUS DO SISTEMA -->
       <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 shadow-lg">
         <h3 class="text-white font-bold mb-3 flex items-center gap-2">
@@ -269,6 +261,13 @@ window.applyGlobalSettingsUI = () => {
   if (originalApplySettings) originalApplySettings();
   if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
 };
+
+// Força a renderização inicial caso atrase
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(() => {
+    if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
+  }, 1000);
+});
 
 // ── Helper: Modal Customizado para Motivo (Prompt Admin) ──────
 window.showAdminPrompt = (titleText, defaultText, callback) => {
@@ -350,13 +349,12 @@ window.addPacksToUser = async (uid, playerName, type, amount, event) => {
     }
   };
 
-  // PROMPT CUSTOMIZADO (Apenas se estiver adicionando pacotes positivos)
   if (amount > 0) {
     window.showAdminPrompt(
       `🎁 Presentear ${playerName}`,
       "Recompensa de Evento!",
       (userInput) => {
-        if (userInput === null) return; // Cancelou no prompt
+        if (userInput === null) return;
         processAdd(userInput !== "" ? userInput : "Ajuste manual do Admin");
       }
     );
@@ -375,12 +373,11 @@ window.sendPacksToAll = async (e) => {
   if (isNaN(amount) || amount <= 0) return window.showMessage("Insira uma quantidade válida.");
   const typeName = type === "premium" ? "Premium" : "Básicos";
 
-  // PROMPT CUSTOMIZADO PARA O MOTIVO GLOBAL
   window.showAdminPrompt(
     `🌍 Enviar para TODOS os ninjas`,
     "Presente Global do Admin!",
     (userInput) => {
-      if (userInput === null) return; // Cancelou no prompt
+      if (userInput === null) return;
       const reason = userInput !== "" ? userInput : "Presente Global do Admin!";
 
       window.showMessage(`Vai enviar ${amount} pacotes ${typeName} para TODOS. Deseja continuar?`, true, async () => {
@@ -407,13 +404,13 @@ window.deleteCard = (id, name) => {
     try {
       await callAdminCF("adminDeleteCard", { cardId: id });
       window.showMessage("Carta excluída com sucesso.");
-      // Invalida cache local e recarrega
+      
       localStorage.removeItem("nin_cards_cache");
       localStorage.removeItem("nin_cards_version");
       
       if (window.loadCardsCache) await window.loadCardsCache();
       if (window.suggestNextCardNumber) window.suggestNextCardNumber();
-      if (window.renderAdminCards) window.renderAdminCards(); // Atualiza painel de gerenciar
+      if (window.renderAdminCards) window.renderAdminCards();
     } catch (err) {
       window.showMessage("Erro ao excluir carta: " + err.message);
     }
@@ -522,8 +519,6 @@ window.loadGitHubImages = async () => {
     grid.innerHTML = "";
     loading.classList.add("hidden");
 
-    // Remove da visualização do GitHub as imagens que já foram convertidas em cartas
-    // (A menos que seja a imagem da carta que estamos editando neste exato momento)
     const availableImages = images.filter(file => !usedImages.includes(file.name) || file.name === currentSelected);
 
     if (availableImages.length === 0) { emptyMsg.classList.remove("hidden"); return; }
@@ -696,7 +691,6 @@ if (adminFormGlobal) {
         descFontSize: parseInt(document.getElementById("admin-desc-size")?.value) || 9,
       };
 
-      // Chama a CF — ela valida role no servidor e sanitiza os dados
       await callAdminCF("adminWriteCard", {
         cardId:   editingCardId || undefined,
         cardData,
@@ -707,7 +701,6 @@ if (adminFormGlobal) {
       msg.classList.remove("hidden");
       setTimeout(() => msg.classList.add("hidden"), 3000);
 
-      // Limpa dados de form pós submissão
       if (editingCardId) {
         window.cancelEdit();
       } else {
@@ -721,20 +714,17 @@ if (adminFormGlobal) {
         });
       }
 
-      // Invalida cache local E recarrega a nova versão
       localStorage.removeItem("nin_cards_cache");
       localStorage.removeItem("nin_cards_version");
       
-      // Aguarda o recarregamento do banco
       if (window.loadCardsCache) await window.loadCardsCache();
 
-      // Funções que devem rodar após ter o banco de dados renovado na memória:
       if (!editingCardId) {
         if (window.suggestNextCardNumber) window.suggestNextCardNumber();
         if (window.updateAdminPreview)    window.updateAdminPreview();
       }
-      if (window.loadGitHubImages)   window.loadGitHubImages(); // Faz a img criada sumir
-      if (window.renderAdminCards)   window.renderAdminCards(); // Insere a carta na aba Gerenciar Cartas
+      if (window.loadGitHubImages)   window.loadGitHubImages(); 
+      if (window.renderAdminCards)   window.renderAdminCards(); 
 
     } catch (error) {
       msg.innerText = "Erro: " + error.message;
