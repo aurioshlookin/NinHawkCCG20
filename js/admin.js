@@ -509,7 +509,7 @@ list.innerHTML += `
     <td class="p-2 font-bold">
       <div class="flex flex-col text-xs gap-0.5">
         <span class="text-green-400">Bás: ${p.pullsAvailable || 0}</span>
-        <span class="text-teal-400">IArt: ${p.iartPullsAvailable || 0}</span>
+        <span class="text-cyan-400">IArt: ${p.iartPullsAvailable || 0}</span>
       </div>
       <div class="inline-flex gap-1 mt-1">
         <button onclick="window.addPacksToUser('${safeUid}', '${safeNameAttr}', 'basic', 1, event)" class="bg-green-700 hover:bg-green-600 px-2 py-0.5 rounded text-white text-xs leading-none transition shadow" title="Adicionar Pacote (Escolher Coleção)">+</button>

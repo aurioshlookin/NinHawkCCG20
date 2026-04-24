@@ -235,6 +235,10 @@ let lastPullsAvailable = null;
         const highestTierStr = Object.keys(TIER_VALUES).find(k => TIER_VALUES[k] === highestTierVal) || 'C';
 
         window.isOpeningPack = true;
+        
+        // Esconde o pacote básico para focar no IArt
+        const boosterPack = document.getElementById('booster-pack');
+        if (boosterPack) boosterPack.classList.add('hidden');
 
         const pack = document.getElementById('iart-pack');
         if (pack) {
@@ -270,7 +274,7 @@ let lastPullsAvailable = null;
                   <div class="opacity-0" style="animation: card-deal 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards ${index * 0.12}s;">
                     <div class="card-container w-24 h-36 sm:w-32 sm:h-48 md:w-40 md:h-60 cursor-pointer transform transition hover:scale-105 rounded-xl" id="gacha-card-${index}" onclick="window.revealSingleCard(${index})">
                       <div class="card-inner shadow-2xl rounded-xl" id="gacha-card-inner-${index}">
-                        <div class="card-back hover:shadow-teal-500/50 transition duration-300 flex flex-col items-center justify-center rounded-xl border-[4px]">
+                        <div class="card-back hover:shadow-cyan-500/50 transition duration-300 flex flex-col items-center justify-center rounded-xl border-[4px]">
                           <img src="https://raw.githubusercontent.com/aurioshlookin/NinHawkCCG20/main/assets/img/icon.png" class="w-10 h-10 sm:w-16 sm:h-16 opacity-60" alt="Card Logo">
                         </div>
                         <div class="card-front p-1 flex flex-col justify-between rounded-xl" id="gacha-card-front-${index}"></div>
@@ -349,6 +353,10 @@ let lastPullsAvailable = null;
         const highestTierStr = Object.keys(TIER_VALUES).find(k => TIER_VALUES[k] === highestTierVal) || 'C';
 
         window.isOpeningPack = true;
+        
+        // Esconde o pacote IArt para focar no Básico
+        const iartPack = document.getElementById('iart-pack');
+        if (iartPack) iartPack.classList.add('hidden');
 
         const pack = document.getElementById('booster-pack');
         if (pack) {
