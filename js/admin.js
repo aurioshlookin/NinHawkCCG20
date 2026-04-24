@@ -349,52 +349,105 @@ window.showAdminPrompt = (titleText, defaultText, callback) => {
   };
 };
 
+// ── Helper: Modal Customizado para Seleção de Pacote (Dropdown) ──────
+window.showPackTypeSelector = (titleText, callback) => {
+  let modal = document.getElementById("admin-pack-selector-modal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "admin-pack-selector-modal";
+    modal.className = "fixed inset-0 bg-gray-900/95 backdrop-blur-sm z-[9999] hidden flex-col items-center justify-center p-4";
+    modal.innerHTML = `
+      <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl transform transition-all scale-95 opacity-0 duration-200" id="admin-pack-selector-box">
+        <h3 class="text-xl font-black text-white mb-2" id="admin-pack-selector-title"></h3>
+        <p class="text-sm text-gray-400 mb-4">Selecione qual pacote deseja adicionar ou remover:</p>
+        <select id="admin-pack-selector-input" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white mb-6 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition">
+          <option value="basic">📦 Pacote Básico</option>
+          <option value="iart">🎨 Pacote IArt</option>
+        </select>
+        <div class="flex justify-end gap-3">
+          <button id="admin-pack-selector-cancel" class="px-4 py-2 rounded-lg font-bold text-gray-400 hover:text-white hover:bg-gray-700 transition">Cancelar</button>
+          <button id="admin-pack-selector-confirm" class="px-4 py-2 rounded-lg font-bold text-white bg-purple-600 hover:bg-purple-500 transition shadow-lg">Confirmar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  const titleEl = document.getElementById("admin-pack-selector-title");
+  const inputEl = document.getElementById("admin-pack-selector-input");
+  const cancelBtn = document.getElementById("admin-pack-selector-cancel");
+  const confirmBtn = document.getElementById("admin-pack-selector-confirm");
+  const box = document.getElementById("admin-pack-selector-box");
+
+  titleEl.innerHTML = titleText;
+  inputEl.value = 'basic'; // Reset to default
+
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+  
+  setTimeout(() => {
+    box.classList.remove("scale-95", "opacity-0");
+    box.classList.add("scale-100", "opacity-100");
+  }, 10);
+
+  const cleanup = () => {
+    box.classList.remove("scale-100", "opacity-100");
+    box.classList.add("scale-95", "opacity-0");
+    setTimeout(() => {
+      modal.classList.remove("flex");
+      modal.classList.add("hidden");
+    }, 200);
+    cancelBtn.onclick = null;
+    confirmBtn.onclick = null;
+  };
+
+  cancelBtn.onclick = () => { cleanup(); callback(null); };
+  confirmBtn.onclick = () => { cleanup(); callback(inputEl.value); };
+};
+
 // ── Dar/remover pacotes de um usuário — via CF ─────────
 window.addPacksToUser = async (uid, playerName, type, amount, event) => {
   if (!window.currentUser || window.userData.role !== "admin") return;
   const btn = event.currentTarget;
 
-  let finalType = type;
-  let typeLabel = type === 'premium' ? 'Premium' : 'Básico';
+  const continueWithPackType = (finalType) => {
+    let typeLabel = finalType === 'premium' ? 'Premium' : (finalType === 'iart' ? 'IArt' : 'Básico');
 
-  if (type === 'basic') {
-      const escolha = prompt(`Alterar pacotes de ${playerName}:\nDigite 1 para coleção BÁSICA\nDigite 2 para coleção IART`);
-      if (escolha === '1') {
-          finalType = 'basic';
-          typeLabel = 'Básico';
-      } else if (escolha === '2') {
-          finalType = 'iart';
-          typeLabel = 'IArt';
-      } else {
-          return; // Operação cancelada
+    const processAdd = async (reason) => {
+      const origText = btn.innerText;
+      btn.innerText = "...";
+      btn.disabled  = true;
+      try {
+        await callAdminCF("adminAddPacks", { targetUid: uid, type: finalType, amount, reason });
+        await window.loadAdminPlayersLog();
+      } catch (err) {
+        window.showMessage("Erro ao alterar pacotes: " + err.message);
+        btn.innerText = origText;
+        btn.disabled  = false;
       }
-  }
+    };
 
-  const processAdd = async (reason) => {
-    const origText = btn.innerText;
-    btn.innerText = "...";
-    btn.disabled  = true;
-    try {
-      await callAdminCF("adminAddPacks", { targetUid: uid, type: finalType, amount, reason });
-      await window.loadAdminPlayersLog();
-    } catch (err) {
-      window.showMessage("Erro ao alterar pacotes: " + err.message);
-      btn.innerText = origText;
-      btn.disabled  = false;
+    if (amount > 0) {
+      window.showAdminPrompt(
+        `🎁 Presentear ${playerName} (${typeLabel})`,
+        "Recompensa de Evento!",
+        (userInput) => {
+          if (userInput === null) return;
+          processAdd(userInput !== "" ? userInput : "Ajuste manual do Admin");
+        }
+      );
+    } else {
+      processAdd("Ajuste manual do Admin");
     }
   };
 
-  if (amount > 0) {
-    window.showAdminPrompt(
-      `🎁 Presentear ${playerName} (${typeLabel})`,
-      "Recompensa de Evento!",
-      (userInput) => {
-        if (userInput === null) return;
-        processAdd(userInput !== "" ? userInput : "Ajuste manual do Admin");
-      }
-    );
+  if (type === 'basic') {
+    window.showPackTypeSelector(`Ajustar pacotes de ${playerName}`, (selectedType) => {
+      if (selectedType === null) return; // Cancelado
+      continueWithPackType(selectedType);
+    });
   } else {
-    processAdd("Ajuste manual do Admin");
+    continueWithPackType(type);
   }
 };
 

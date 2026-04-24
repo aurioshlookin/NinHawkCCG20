@@ -579,45 +579,98 @@
       return json.data;
     }
 
-    window.darBoostGlobal = (tipo) => {
-      let finalType = tipo === 'comum' ? 'basic' : 'premium';
-      let typeLabel = tipo === 'comum' ? 'Básico' : 'Premium';
-
-      if (tipo === 'comum') {
-          const escolha = prompt("Qual pacote deseja enviar para todos os jogadores?\nDigite 1 para BÁSICO\nDigite 2 para IART");
-          if (escolha === '1') {
-              finalType = 'basic';
-              typeLabel = 'Básico';
-          } else if (escolha === '2') {
-              finalType = 'iart';
-              typeLabel = 'IArt';
-          } else {
-              return; // Cancelou a operação
-          }
+    // Modal com Dropdown para selecionar coleção em envios globais
+    window.showPackTypeSelector = (titleText, callback) => {
+      let modal = document.getElementById("admin-pack-selector-modal");
+      if (!modal) {
+        modal = document.createElement("div");
+        modal.id = "admin-pack-selector-modal";
+        modal.className = "fixed inset-0 bg-slate-900/95 backdrop-blur-sm z-[9999] hidden flex-col items-center justify-center p-4";
+        modal.innerHTML = `
+          <div class="bg-slate-800 border border-slate-600 rounded-2xl p-6 w-full max-w-md shadow-2xl transform transition-all scale-95 opacity-0 duration-200" id="admin-pack-selector-box">
+            <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2" id="admin-pack-selector-title"></h3>
+            <p class="text-sm text-slate-300 mb-4">Selecione qual pacote deseja enviar para TODOS os jogadores:</p>
+            <select id="admin-pack-selector-input" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white mb-6 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition shadow-inner">
+              <option value="basic">📦 Pacote Básico</option>
+              <option value="iart">🎨 Pacote IArt</option>
+            </select>
+            <div class="flex justify-end gap-3">
+              <button id="admin-pack-selector-cancel" class="px-4 py-2 rounded-lg font-bold text-slate-400 hover:text-white hover:bg-slate-700 transition">Cancelar</button>
+              <button id="admin-pack-selector-confirm" class="px-4 py-2 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-500 transition shadow-lg">Confirmar Escolha</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
       }
 
-      window.mostrarModalConfirmacao(
-        "Ação Global no Servidor",
-        `Você está prestes a dar 1 Pacote ${typeLabel.toUpperCase()} para TODOS os jogadores registrados.\n\nEssa ação afeta o banco de dados inteiro. Deseja continuar?`,
-        async () => {
-          const btnId = tipo === 'comum' ? 'btn-boost-comum' : 'btn-boost-premium';
-          const btn = document.getElementById(btnId);
-          const textoOriginal = btn.innerHTML;
-          btn.disabled = true;
-          btn.innerHTML = `<span class="animate-spin text-xl">⏳</span> Processando ninjas...`;
+      const titleEl = document.getElementById("admin-pack-selector-title");
+      const inputEl = document.getElementById("admin-pack-selector-input");
+      const cancelBtn = document.getElementById("admin-pack-selector-cancel");
+      const confirmBtn = document.getElementById("admin-pack-selector-confirm");
+      const box = document.getElementById("admin-pack-selector-box");
 
-          try {
-            const payload = { type: finalType, amount: 1 };
-            const result = await callAdminCF('adminSendPacksToAll', payload);
-            window.mostrarToast(`Sucesso! Pacotes distribuídos para ${result.totalAffected} ninjas.`, "sucesso");
-          } catch (error) {
-            window.mostrarToast(`Erro ao enviar: ${error.message}`, "erro");
-          } finally {
-            btn.disabled = false;
-            btn.innerHTML = textoOriginal;
+      titleEl.innerHTML = `<span>⚡</span> ${titleText}`;
+      inputEl.value = 'basic'; // Default
+
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+
+      setTimeout(() => {
+        box.classList.remove("scale-95", "opacity-0");
+        box.classList.add("scale-100", "opacity-100");
+      }, 10);
+
+      const cleanup = () => {
+        box.classList.remove("scale-100", "opacity-100");
+        box.classList.add("scale-95", "opacity-0");
+        setTimeout(() => {
+          modal.classList.remove("flex");
+          modal.classList.add("hidden");
+        }, 200);
+        cancelBtn.onclick = null;
+        confirmBtn.onclick = null;
+      };
+
+      cancelBtn.onclick = () => { cleanup(); callback(null); };
+      confirmBtn.onclick = () => { cleanup(); callback(inputEl.value); };
+    };
+
+    window.darBoostGlobal = (tipo) => {
+      const continueWithBoost = (finalType) => {
+        let typeLabel = finalType === 'premium' ? 'Premium' : (finalType === 'iart' ? 'IArt' : 'Básico');
+
+        window.mostrarModalConfirmacao(
+          "Ação Global no Servidor",
+          `Você está prestes a dar 1 Pacote ${typeLabel.toUpperCase()} para TODOS os jogadores registrados.\n\nEssa ação afeta o banco de dados inteiro. Deseja continuar?`,
+          async () => {
+            const btnId = tipo === 'comum' ? 'btn-boost-comum' : 'btn-boost-premium';
+            const btn = document.getElementById(btnId);
+            const textoOriginal = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="animate-spin text-xl">⏳</span> Processando ninjas...`;
+
+            try {
+              const payload = { type: finalType, amount: 1 };
+              const result = await callAdminCF('adminSendPacksToAll', payload);
+              window.mostrarToast(`Sucesso! Pacotes distribuídos para ${result.totalAffected} ninjas.`, "sucesso");
+            } catch (error) {
+              window.mostrarToast(`Erro ao enviar: ${error.message}`, "erro");
+            } finally {
+              btn.disabled = false;
+              btn.innerHTML = textoOriginal;
+            }
           }
-        }
-      );
+        );
+      };
+
+      if (tipo === 'comum') {
+        window.showPackTypeSelector("Boost Global", (selectedType) => {
+          if (selectedType === null) return;
+          continueWithBoost(selectedType);
+        });
+      } else {
+        continueWithBoost('premium');
+      }
     };
 
     window.banirJogadorPorIP = (nickOverride = null) => {
