@@ -240,12 +240,14 @@ function initApp() {
   };
 
   const THREE_HOURS = 3 * 60 * 60 * 1000;
+  const SIX_HOURS = 6 * 60 * 60 * 1000;
 
   setInterval(() => {
     const ud = window.userData;
     const user = window.currentUser;
     if (!user || !ud) return;
 
+    // Timer do Pacote Básico
     if ((ud.pullsAvailable || 0) < 5 && ud.lastPullTimestamp) {
       let ts = ud.lastPullTimestamp;
       if (ts?.toMillis) ts = ts.toMillis();
@@ -255,25 +257,50 @@ function initApp() {
       if (!ts || isNaN(ts) || ts > Date.now()) {
         const timerContainer = document.getElementById('pull-timer-container');
         if (timerContainer) timerContainer.classList.add('hidden');
-        return;
+      } else {
+        const timerContainer = document.getElementById('pull-timer-container');
+        const timerText = document.getElementById('pull-timer');
+
+        if (timerContainer) timerContainer.classList.remove('hidden');
+
+        const timeLeft = THREE_HOURS - ((Date.now() - ts) % THREE_HOURS);
+        const h = Math.floor(timeLeft / (1000 * 60 * 60)).toString().padStart(2, '0');
+        const m = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+        const s = Math.floor((timeLeft % (1000 * 60)) / 1000).toString().padStart(2, '0');
+
+        if (timerText) timerText.innerText = `${h}h ${m}m ${s}s`;
       }
-
-      const timerContainer = document.getElementById('pull-timer-container');
-      const timerText = document.getElementById('pull-timer');
-      const largeTimer = document.getElementById('large-pull-timer');
-
-      if (timerContainer) timerContainer.classList.remove('hidden');
-
-      const timeLeft = THREE_HOURS - ((Date.now() - ts) % THREE_HOURS);
-      const h = Math.floor(timeLeft / (1000 * 60 * 60)).toString().padStart(2, '0');
-      const m = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
-      const s = Math.floor((timeLeft % (1000 * 60)) / 1000).toString().padStart(2, '0');
-
-      if (timerText) timerText.innerText = `${h}h ${m}m ${s}s`;
-      if (largeTimer) largeTimer.innerText = `${h}h ${m}m ${s}s`;
     } else {
       const timerContainer = document.getElementById('pull-timer-container');
       if (timerContainer) timerContainer.classList.add('hidden');
+    }
+
+    // Timer do Pacote IArt
+    if ((ud.iartPullsAvailable || 0) < 3 && ud.lastIArtPullTimestamp) {
+      let tsIArt = ud.lastIArtPullTimestamp;
+      if (tsIArt?.toMillis) tsIArt = tsIArt.toMillis();
+      else if (tsIArt?.seconds) tsIArt = tsIArt.seconds * 1000;
+      tsIArt = Number(tsIArt);
+
+      if (!tsIArt || isNaN(tsIArt) || tsIArt > Date.now()) {
+        const timerContainerIArt = document.getElementById('iart-pull-timer-container');
+        if (timerContainerIArt) timerContainerIArt.classList.add('hidden');
+      } else {
+        const timerContainerIArt = document.getElementById('iart-pull-timer-container');
+        const timerTextIArt = document.getElementById('iart-pull-timer');
+
+        if (timerContainerIArt) timerContainerIArt.classList.remove('hidden');
+
+        const timeLeftIArt = SIX_HOURS - ((Date.now() - tsIArt) % SIX_HOURS);
+        const h = Math.floor(timeLeftIArt / (1000 * 60 * 60)).toString().padStart(2, '0');
+        const m = Math.floor((timeLeftIArt % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+        const s = Math.floor((timeLeftIArt % (1000 * 60)) / 1000).toString().padStart(2, '0');
+
+        if (timerTextIArt) timerTextIArt.innerText = `${h}h ${m}m ${s}s`;
+      }
+    } else {
+      const timerContainerIArt = document.getElementById('iart-pull-timer-container');
+      if (timerContainerIArt) timerContainerIArt.classList.add('hidden');
     }
   }, 1000);
 
@@ -391,9 +418,9 @@ function initApp() {
     });
   };
 
-  window.isOpeningAchiev       = window.isOpeningAchiev       || false;
+  window.isOpeningAchiev        = window.isOpeningAchiev        || false;
   window.achievSelectedIndices = window.achievSelectedIndices || [];
-  window.currentAchievType     = window.currentAchievType     || 'basic';
+  window.currentAchievType      = window.currentAchievType      || 'basic';
 
   // ============================================================
   // claimAchievement — chama a Cloud Function (seguro)

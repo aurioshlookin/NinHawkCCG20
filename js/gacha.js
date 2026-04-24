@@ -17,6 +17,10 @@ let lastPullsAvailable = null;
         if (userData.pullsAvailable <= 0) return;
         desc.innerHTML = `Tem certeza que deseja abrir <strong class="text-green-400">1 Pacote Básico</strong>?<br>Você tem <strong class="text-white">${userData.pullsAvailable}</strong> restantes.`;
         btn.onclick = () => { modal.classList.add('hidden'); window.openPack(); };
+      } else if (type === 'iart') {
+        if (userData.iartPullsAvailable <= 0) return;
+        desc.innerHTML = `Tem certeza que deseja abrir <strong class="text-teal-400">1 Pacote IArt</strong>?<br>Você tem <strong class="text-white">${userData.iartPullsAvailable}</strong> restantes.`;
+        btn.onclick = () => { modal.classList.add('hidden'); window.openIArtPack(); };
       } else {
         if (userData.premiumPullsAvailable <= 0) return;
         desc.innerHTML = `Tem certeza que deseja abrir <strong class="text-yellow-400">1 Pacote Premium</strong>?<br>Você tem <strong class="text-white">${userData.premiumPullsAvailable}</strong> restantes.`;
@@ -203,6 +207,88 @@ let lastPullsAvailable = null;
       window.achievRevealedCount = 0;
     };
 
+    window.openIArtPack = async () => {
+      if (!currentUser || isOpeningPack || isProcessingPackTransaction || window.cardDatabase.length === 0) return;
+      isProcessingPackTransaction = true;
+
+      try {
+        const token = await currentUser.getIdToken();
+        const response = await fetch(`${CLOUD_FUNCTIONS_URL}/openIArtPack`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+        });
+
+        const json = await response.json();
+        if (!response.ok || json.error) {
+          throw new Error(json.error?.message || 'Erro ao abrir pacote IArt.');
+        }
+
+        const { wonCards, missedCards } = json.data;
+
+        // As cartas chegam do servidor — apenas anima no cliente
+        window.currentPackWonCards = wonCards;
+        window.currentPackMissedCards = missedCards;
+        window.packRevealedCount = 0;
+        selectedCardsIndices = [];
+
+        const highestTierVal = Math.max(...wonCards.concat(missedCards).map(c => TIER_VALUES[c.tier] || 1));
+        const highestTierStr = Object.keys(TIER_VALUES).find(k => TIER_VALUES[k] === highestTierVal) || 'C';
+
+        window.isOpeningPack = true;
+
+        const pack = document.getElementById('iart-pack');
+        if (pack) {
+          if (highestTierVal >= 4) { pack.classList.add(`glowing-${highestTierStr}`, 'shaking-violent'); }
+          else { pack.classList.add('shaking'); }
+          window.playGachaSound(highestTierStr);
+        }
+
+        const suspenseTime = highestTierVal >= 4 ? 1200 : 400;
+
+        setTimeout(() => {
+          if (pack) {
+            pack.classList.remove('shaking', 'shaking-violent', 'glowing-SS', 'glowing-S', 'glowing-A');
+            pack.classList.add('tearing');
+            window.fireConfetti(highestTierStr);
+            const flash = document.getElementById('pack-flash');
+            if (flash) {
+              flash.classList.remove('hidden'); void flash.offsetWidth;
+              flash.classList.remove('opacity-0'); flash.classList.add('opacity-100');
+              setTimeout(() => {
+                flash.classList.remove('opacity-100'); flash.classList.add('opacity-0');
+                setTimeout(() => flash.classList.add('hidden'), 300);
+              }, 250);
+            }
+          }
+          setTimeout(() => {
+            if (pack) { pack.classList.add('hidden'); pack.classList.remove('tearing'); }
+            const revealedContainer = document.getElementById('revealed-cards');
+            if (revealedContainer) {
+              revealedContainer.innerHTML = ''; revealedContainer.classList.remove('hidden');
+              for (let index = 0; index < 8; index++) {
+                revealedContainer.innerHTML += `
+                  <div class="opacity-0" style="animation: card-deal 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards ${index * 0.12}s;">
+                    <div class="card-container w-24 h-36 sm:w-32 sm:h-48 md:w-40 md:h-60 cursor-pointer transform transition hover:scale-105 rounded-xl" id="gacha-card-${index}" onclick="window.revealSingleCard(${index})">
+                      <div class="card-inner shadow-2xl rounded-xl" id="gacha-card-inner-${index}">
+                        <div class="card-back hover:shadow-teal-500/50 transition duration-300 flex flex-col items-center justify-center rounded-xl border-[4px]">
+                          <img src="https://raw.githubusercontent.com/aurioshlookin/NinHawkCCG20/main/assets/img/icon.png" class="w-10 h-10 sm:w-16 sm:h-16 opacity-60" alt="Card Logo">
+                        </div>
+                        <div class="card-front p-1 flex flex-col justify-between rounded-xl" id="gacha-card-front-${index}"></div>
+                      </div>
+                    </div>
+                  </div>`;
+              }
+            }
+          }, 400);
+        }, suspenseTime);
+
+      } catch (error) {
+        window.showMessage("Erro: " + error.message);
+      } finally {
+        isProcessingPackTransaction = false;
+      }
+    };
+
     let currentPackCards = [];
     let selectedCardsIndices = [];
     window.isOpeningPack = window.isOpeningPack || false;
@@ -381,14 +467,16 @@ let lastPullsAvailable = null;
     };
 
     window.updateGachaUI = () => {
-  const currentState = `${userData.pullsAvailable}-${userData.premiumPullsAvailable}`;
+  const currentState = `${userData.pullsAvailable}-${userData.premiumPullsAvailable}-${userData.iartPullsAvailable}`;
 
 if (currentState === lastPullsAvailable) return;
 lastPullsAvailable = currentState;
-  lastPullsAvailable = userData.pullsAvailable;
             
       const pullsCountEl = document.getElementById('pulls-count');
       if (pullsCountEl) pullsCountEl.innerText = userData.pullsAvailable || 0;
+
+      const iartPullsCountEl = document.getElementById('iart-pulls-count');
+      if (iartPullsCountEl) iartPullsCountEl.innerText = userData.iartPullsAvailable || 0;
       
       const totalOpenedEl = document.getElementById('gacha-total-packs-opened');
       if(totalOpenedEl) totalOpenedEl.innerText = userData.totalPacksOpened || 0;
@@ -428,22 +516,32 @@ lastPullsAvailable = currentState;
 
       const containerVazio = document.getElementById('out-of-pulls-container');
       const boosterPack = document.getElementById('booster-pack');
+      const iartPack = document.getElementById('iart-pack');
 
+      // Visibilidade Booster
       if (userData.pullsAvailable <= 0 && !isOpeningPack) {
-        if (boosterPack && !boosterPack.classList.contains('hidden')) {
-  boosterPack.classList.add('hidden');
-}
-        if (containerVazio) { if (containerVazio.classList.contains('hidden')) {
-  containerVazio.classList.remove('hidden');
-  containerVazio.classList.add('flex');
-} }
+        if (boosterPack && !boosterPack.classList.contains('hidden')) boosterPack.classList.add('hidden');
       } else if (!isOpeningPack && window.cardDatabase.length > 0) {
-        if (boosterPack && boosterPack.classList.contains('hidden')) {
-  boosterPack.classList.remove('hidden');
-}
-        if (containerVazio) { if (!containerVazio.classList.contains('hidden')) {
-  containerVazio.classList.add('hidden');
-  containerVazio.classList.remove('flex');
-} }
+        if (boosterPack && boosterPack.classList.contains('hidden')) boosterPack.classList.remove('hidden');
+      }
+
+      // Visibilidade IArt
+      if (userData.iartPullsAvailable <= 0 && !isOpeningPack) {
+        if (iartPack && !iartPack.classList.contains('hidden')) iartPack.classList.add('hidden');
+      } else if (!isOpeningPack && window.cardDatabase.length > 0) {
+        if (iartPack && iartPack.classList.contains('hidden')) iartPack.classList.remove('hidden');
+      }
+
+      // Container Vazio (Aparece apenas se os dois pacotes normais estiverem zerados e não estiver abrindo nada)
+      if (userData.pullsAvailable <= 0 && userData.iartPullsAvailable <= 0 && !isOpeningPack) {
+        if (containerVazio && containerVazio.classList.contains('hidden')) {
+          containerVazio.classList.remove('hidden');
+          containerVazio.classList.add('flex');
+        }
+      } else {
+        if (containerVazio && !containerVazio.classList.contains('hidden')) {
+          containerVazio.classList.add('hidden');
+          containerVazio.classList.remove('flex');
+        }
       }
     };

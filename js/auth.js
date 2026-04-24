@@ -111,6 +111,7 @@ function initAuth() {
         window.userData.claimedAchievements = data.claimedAchievements || {};
         window.userData.notifications       = data.notifications       || [];
         if (window.userData.premiumPullsAvailable === undefined) window.userData.premiumPullsAvailable = 0;
+        if (window.userData.iartPullsAvailable === undefined) window.userData.iartPullsAvailable = 0;
         if (window.userData.totalTradesCompleted  === undefined) window.userData.totalTradesCompleted  = 0;
 
         // Normaliza lastPullTimestamp para número (ms)
@@ -118,6 +119,13 @@ if (window.userData.lastPullTimestamp?.toMillis) {
   window.userData.lastPullTimestamp = window.userData.lastPullTimestamp.toMillis();
 } else if (window.userData.lastPullTimestamp?.seconds) {
   window.userData.lastPullTimestamp = window.userData.lastPullTimestamp.seconds * 1000;
+}
+
+        // Normaliza lastIArtPullTimestamp para número (ms)
+if (window.userData.lastIArtPullTimestamp?.toMillis) {
+  window.userData.lastIArtPullTimestamp = window.userData.lastIArtPullTimestamp.toMillis();
+} else if (window.userData.lastIArtPullTimestamp?.seconds) {
+  window.userData.lastIArtPullTimestamp = window.userData.lastIArtPullTimestamp.seconds * 1000;
 }
   
         // Auto-heal de createdAt (campo não sensível — permitido pelas rules)
@@ -127,8 +135,8 @@ if (window.userData.lastPullTimestamp?.toMillis) {
         }
   
         if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
-        if (window.updateGachaUI)        window.updateGachaUI();
-        if (window.renderAlbumHTML)      window.renderAlbumHTML("album-grid", window.userData.inventory);
+        if (window.updateGachaUI)         window.updateGachaUI();
+        if (window.renderAlbumHTML)       window.renderAlbumHTML("album-grid", window.userData.inventory);
         if (window.updateTradeOptions)   window.updateTradeOptions();
         if (window.updateTradeLimitsUI)  window.updateTradeLimitsUI();
         if (window.renderAchievements)   window.renderAchievements();
@@ -173,4 +181,3 @@ if (window._firebaseReady) {
 } else {
   window.addEventListener('firebase-ready', initAuth, { once: true });
 }
-

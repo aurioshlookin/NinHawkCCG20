@@ -62,6 +62,15 @@
           </div>
         </div>
         
+        <div class="flex flex-col items-end ml-3">
+          <div class="text-sm bg-gray-800 px-3 py-1 rounded-full border border-teal-500/50 shadow-inner flex items-center gap-2">
+            <span>IArt: <span id="iart-pulls-count" class="font-bold text-teal-400">-</span>/3</span>
+          </div>
+          <div id="iart-pull-timer-container" class="text-[10px] text-gray-400 mt-1 hidden">
+            +1 em: <span id="iart-pull-timer" class="text-teal-400 font-bold">--:--:--</span>
+          </div>
+        </div>
+
         <div class="flex items-center gap-2">
           <div class="relative flex items-center mr-2">
             <button id="btn-notifications" onclick="window.toggleNotifications()" class="relative p-2 text-gray-400 hover:text-white transition">
@@ -384,25 +393,38 @@
         <div id="gacha-area" class="relative flex flex-col justify-center items-center min-h-[400px] w-full gap-8">
           <div id="pack-flash" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full h-full bg-white z-[100] pointer-events-none opacity-0 hidden transition-opacity duration-300 rounded-full blur-[80px] mix-blend-overlay"></div>
 
-          <div id="booster-pack" class="pack" onclick="window.promptOpenPack('basic')">
-            <div class="pack-cards-bg shadow-inner"></div>
-            <div class="pack-top"></div>
-            <div class="pack-bottom flex-col gap-3">
-              <div class="w-24 h-24 flex items-center justify-center drop-shadow-[0_0_15px_rgba(34,197,94,0.6)]">
-                <img src="https://raw.githubusercontent.com/aurioshlookin/NinHawkCCG20/main/assets/img/icon.png" alt="Logo" class="w-full h-full object-contain">
+          <div class="flex flex-col sm:flex-row gap-8 items-center justify-center w-full">
+            <div id="booster-pack" class="pack" onclick="window.promptOpenPack('basic')">
+              <div class="pack-cards-bg shadow-inner"></div>
+              <div class="pack-top"></div>
+              <div class="pack-bottom flex-col gap-3">
+                <div class="w-24 h-24 flex items-center justify-center drop-shadow-[0_0_15px_rgba(34,197,94,0.6)]">
+                  <img src="https://raw.githubusercontent.com/aurioshlookin/NinHawkCCG20/main/assets/img/icon.png" alt="Logo" class="w-full h-full object-contain">
+                </div>
+                <span class="block text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-green-300 to-green-600 tracking-widest drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">NIN</span>
+                <span class="block text-xs text-gray-300 font-bold tracking-widest uppercase">Pacote Básico</span>
               </div>
-              <span class="block text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-green-300 to-green-600 tracking-widest drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">NIN</span>
-              <span class="block text-xs text-gray-300 font-bold tracking-widest uppercase">Pacote Básico</span>
+            </div>
+
+            <div id="iart-pack" class="pack pack-iart" onclick="window.promptOpenPack('iart')">
+              <div class="pack-cards-bg shadow-inner"></div>
+              <div class="pack-top"></div>
+              <div class="pack-bottom flex-col gap-3">
+                <div class="w-24 h-24 flex items-center justify-center drop-shadow-[0_0_15px_rgba(45,212,191,0.6)]">
+                  <img src="https://raw.githubusercontent.com/aurioshlookin/NinHawkCCG20/main/assets/img/icon.png" alt="Logo" class="w-full h-full object-contain">
+                </div>
+                <span class="block text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-teal-300 to-teal-600 tracking-widest drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">IART</span>
+                <span class="block text-xs text-gray-300 font-bold tracking-widest uppercase">Pacote IArt</span>
+              </div>
             </div>
           </div>
           
           <div id="out-of-pulls-container" class="hidden flex-col items-center justify-center bg-gray-800 p-8 rounded-xl border border-gray-700 w-full max-w-md mx-auto shadow-2xl">
             <div class="text-6xl mb-4 opacity-30">⏳</div>
-            <h3 class="text-2xl font-bold text-gray-200 mb-2">Sem Pacotes Básicos!</h3>
-            <p class="text-gray-400 text-center mb-6">A sua energia acabou. Aguarde a recarga para voltar a abrir pacotes.</p>
+            <h3 class="text-2xl font-bold text-gray-200 mb-2">Sem Pacotes Diários!</h3>
+            <p class="text-gray-400 text-center mb-6">A sua energia acabou. Aguarde a recarga para voltar a abrir os pacotes.</p>
             <div class="bg-gray-900 px-8 py-4 rounded-lg border border-gray-700 text-center shadow-inner">
-              <span class="block text-xs text-gray-500 uppercase font-bold mb-1">Próximo pacote em:</span>
-              <span id="large-pull-timer" class="text-4xl font-black text-green-400 tracking-wider">--:--:--</span>
+              <span class="block text-xs text-gray-500 uppercase font-bold mb-1">Acompanhe os cronômetros no menu superior!</span>
             </div>
           </div>
 
@@ -855,24 +877,24 @@
     window.auth = auth;
 
     // Firestore helpers — usados diretamente em trade.js, admin.js, etc.
-    window.doc            = doc;
-    window.getDoc         = getDoc;
-    window.setDoc         = setDoc;
-    window.updateDoc      = updateDoc;
-    window.addDoc         = addDoc;
-    window.onSnapshot     = onSnapshot;
-    window.collection     = collection;
-    window.query          = query;
-    window.where          = where;
-    window.getDocs        = getDocs;
+    window.doc             = doc;
+    window.getDoc          = getDoc;
+    window.setDoc          = setDoc;
+    window.updateDoc       = updateDoc;
+    window.addDoc          = addDoc;
+    window.onSnapshot      = onSnapshot;
+    window.collection      = collection;
+    window.query           = query;
+    window.where           = where;
+    window.getDocs         = getDocs;
     window.serverTimestamp = serverTimestamp;
     window.runTransaction = runTransaction;
-    window.deleteDoc      = deleteDoc;
-    window.writeBatch     = writeBatch;
-    window.increment      = increment;
+    window.deleteDoc       = deleteDoc;
+    window.writeBatch      = writeBatch;
+    window.increment       = increment;
 
     // Auth helpers
-    window.signOut        = signOut;
+    window.signOut         = signOut;
     window.onAuthStateChanged = onAuthStateChanged;
     window.updateProfile  = updateProfile;
 
