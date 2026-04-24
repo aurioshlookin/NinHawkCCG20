@@ -127,6 +127,8 @@ function escAttr(str) {
           if(t === 'fusion') btn.classList.add('text-fuchsia-400', 'border-fuchsia-400');
 
           if (t === 'explore') {
+            // FIX: Fecha o álbum do jogador (se estiver aberto) para não encavalar com o ranking
+            if (window.closePlayerAlbum) window.closePlayerAlbum();
             if (window.loadGlobalStats) window.loadGlobalStats(); 
             if (window.loadAllPlayers) window.loadAllPlayers(false);
           }
