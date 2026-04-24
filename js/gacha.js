@@ -236,6 +236,13 @@ let lastPullsAvailable = null;
 
         window.isOpeningPack = true;
         
+        // Transforma a área de gacha em um Modal
+        const gachaArea = document.getElementById('gacha-area');
+        if (gachaArea) {
+          gachaArea.classList.remove('relative', 'min-h-[400px]', 'w-full');
+          gachaArea.classList.add('fixed', 'inset-0', 'bg-black/95', 'z-[200]', 'backdrop-blur-md', 'p-4', 'overflow-y-auto');
+        }
+
         // Esconde o pacote básico para focar no IArt
         const boosterPack = document.getElementById('booster-pack');
         if (boosterPack) boosterPack.classList.add('hidden');
@@ -354,6 +361,13 @@ let lastPullsAvailable = null;
 
         window.isOpeningPack = true;
         
+        // Transforma a área de gacha em um Modal
+        const gachaArea = document.getElementById('gacha-area');
+        if (gachaArea) {
+          gachaArea.classList.remove('relative', 'min-h-[400px]', 'w-full');
+          gachaArea.classList.add('fixed', 'inset-0', 'bg-black/95', 'z-[200]', 'backdrop-blur-md', 'p-4', 'overflow-y-auto');
+        }
+
         // Esconde o pacote IArt para focar no Básico
         const iartPack = document.getElementById('iart-pack');
         if (iartPack) iartPack.classList.add('hidden');
@@ -469,8 +483,20 @@ let lastPullsAvailable = null;
     window.resetPackArea = () => {
       const revealedCards = document.getElementById('revealed-cards');
       const btnNext = document.getElementById('btn-next');
+      const gachaArea = document.getElementById('gacha-area');
+
       if (revealedCards) revealedCards.classList.add('hidden');
       if (btnNext) btnNext.classList.add('hidden');
+
+      // Remove o efeito Modal e volta ao padrão da página
+      if (gachaArea) {
+        gachaArea.classList.remove('fixed', 'inset-0', 'bg-black/95', 'z-[200]', 'backdrop-blur-md', 'p-4', 'overflow-y-auto');
+        gachaArea.classList.add('relative', 'min-h-[400px]', 'w-full');
+      }
+
+      // LIMPA O CACHE de estado para forçar a renderização imediata dos pacotes
+      lastPullsAvailable = null; 
+      
       window.updateGachaUI(); 
     };
 
