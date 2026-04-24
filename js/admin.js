@@ -354,12 +354,28 @@ window.addPacksToUser = async (uid, playerName, type, amount, event) => {
   if (!window.currentUser || window.userData.role !== "admin") return;
   const btn = event.currentTarget;
 
+  let finalType = type;
+  let typeLabel = type === 'premium' ? 'Premium' : 'Básico';
+
+  if (type === 'basic') {
+      const escolha = prompt(`Alterar pacotes de ${playerName}:\nDigite 1 para coleção BÁSICA\nDigite 2 para coleção IART`);
+      if (escolha === '1') {
+          finalType = 'basic';
+          typeLabel = 'Básico';
+      } else if (escolha === '2') {
+          finalType = 'iart';
+          typeLabel = 'IArt';
+      } else {
+          return; // Operação cancelada
+      }
+  }
+
   const processAdd = async (reason) => {
     const origText = btn.innerText;
     btn.innerText = "...";
     btn.disabled  = true;
     try {
-      await callAdminCF("adminAddPacks", { targetUid: uid, type, amount, reason });
+      await callAdminCF("adminAddPacks", { targetUid: uid, type: finalType, amount, reason });
       await window.loadAdminPlayersLog();
     } catch (err) {
       window.showMessage("Erro ao alterar pacotes: " + err.message);
@@ -370,7 +386,7 @@ window.addPacksToUser = async (uid, playerName, type, amount, event) => {
 
   if (amount > 0) {
     window.showAdminPrompt(
-      `🎁 Presentear ${playerName}`,
+      `🎁 Presentear ${playerName} (${typeLabel})`,
       "Recompensa de Evento!",
       (userInput) => {
         if (userInput === null) return;
@@ -472,6 +488,12 @@ window.loadAdminPlayersLog = async () => {
     querySnapshot.forEach(d => players.push({ uid: d.id, ...d.data() }));
     players.sort((a, b) => (b.totalPacksOpened || 0) - (a.totalPacksOpened || 0));
 
+    // Atualiza o cabeçalho para exibir as duas contagens na coluna
+    const thead = list.parentElement.querySelector("thead tr");
+    if (thead) {
+      thead.innerHTML = '<th>Nick</th><th>Cargo</th><th>Packs Básico / IArt</th><th>Packs Premium</th><th>Abertos (Total)</th><th>Última Troca</th>';
+    }
+
     list.innerHTML = "";
     players.forEach(p => {
       const roleColor = p.role === "admin" ? "text-red-400" : "text-gray-400";
@@ -484,11 +506,14 @@ list.innerHTML += `
   <tr class="hover:bg-gray-700">
     <td class="p-2 font-bold text-white">${safeDisplayName}</td>
     <td class="p-2 ${roleColor} font-bold">${p.role === "admin" ? "Admin" : "Jogador"}</td>
-    <td class="p-2 text-green-400 font-bold">
-      ${p.pullsAvailable || 0}
-      <div class="inline-flex gap-1 ml-2">
-        <button onclick="window.addPacksToUser('${safeUid}', '${safeNameAttr}', 'basic', 1, event)" class="bg-green-700 hover:bg-green-600 px-1.5 py-0.5 rounded text-white text-xs leading-none transition" title="Dar 1 Pacote Básico">+</button>
-        <button onclick="window.addPacksToUser('${safeUid}', '${safeNameAttr}', 'basic', -1, event)" class="bg-red-700 hover:bg-red-600 px-1.5 py-0.5 rounded text-white text-xs leading-none transition" title="Tirar 1 Pacote Básico">-</button>
+    <td class="p-2 font-bold">
+      <div class="flex flex-col text-xs gap-0.5">
+        <span class="text-green-400">Bás: ${p.pullsAvailable || 0}</span>
+        <span class="text-teal-400">IArt: ${p.iartPullsAvailable || 0}</span>
+      </div>
+      <div class="inline-flex gap-1 mt-1">
+        <button onclick="window.addPacksToUser('${safeUid}', '${safeNameAttr}', 'basic', 1, event)" class="bg-green-700 hover:bg-green-600 px-2 py-0.5 rounded text-white text-xs leading-none transition shadow" title="Adicionar Pacote (Escolher Coleção)">+</button>
+        <button onclick="window.addPacksToUser('${safeUid}', '${safeNameAttr}', 'basic', -1, event)" class="bg-red-700 hover:bg-red-600 px-2 py-0.5 rounded text-white text-xs leading-none transition shadow" title="Remover Pacote (Escolher Coleção)">-</button>
       </div>
     </td>
     <td class="p-2 text-yellow-400 font-bold">

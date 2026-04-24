@@ -580,9 +580,25 @@
     }
 
     window.darBoostGlobal = (tipo) => {
+      let finalType = tipo === 'comum' ? 'basic' : 'premium';
+      let typeLabel = tipo === 'comum' ? 'Básico' : 'Premium';
+
+      if (tipo === 'comum') {
+          const escolha = prompt("Qual pacote deseja enviar para todos os jogadores?\nDigite 1 para BÁSICO\nDigite 2 para IART");
+          if (escolha === '1') {
+              finalType = 'basic';
+              typeLabel = 'Básico';
+          } else if (escolha === '2') {
+              finalType = 'iart';
+              typeLabel = 'IArt';
+          } else {
+              return; // Cancelou a operação
+          }
+      }
+
       window.mostrarModalConfirmacao(
         "Ação Global no Servidor",
-        `Você está prestes a dar 1 Pacote ${tipo.toUpperCase()} para TODOS os jogadores registrados.\n\nEssa ação afeta o banco de dados inteiro. Deseja continuar?`,
+        `Você está prestes a dar 1 Pacote ${typeLabel.toUpperCase()} para TODOS os jogadores registrados.\n\nEssa ação afeta o banco de dados inteiro. Deseja continuar?`,
         async () => {
           const btnId = tipo === 'comum' ? 'btn-boost-comum' : 'btn-boost-premium';
           const btn = document.getElementById(btnId);
@@ -591,7 +607,7 @@
           btn.innerHTML = `<span class="animate-spin text-xl">⏳</span> Processando ninjas...`;
 
           try {
-            const payload = { type: tipo === 'comum' ? 'basic' : 'premium', amount: 1 };
+            const payload = { type: finalType, amount: 1 };
             const result = await callAdminCF('adminSendPacksToAll', payload);
             window.mostrarToast(`Sucesso! Pacotes distribuídos para ${result.totalAffected} ninjas.`, "sucesso");
           } catch (error) {

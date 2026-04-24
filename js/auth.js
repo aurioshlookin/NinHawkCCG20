@@ -111,8 +111,24 @@ function initAuth() {
         window.userData.claimedAchievements = data.claimedAchievements || {};
         window.userData.notifications       = data.notifications       || [];
         if (window.userData.premiumPullsAvailable === undefined) window.userData.premiumPullsAvailable = 0;
-        if (window.userData.iartPullsAvailable === undefined) window.userData.iartPullsAvailable = 0;
+        
+        if (window.userData.iartPullsAvailable === undefined) {
+          window.userData.iartPullsAvailable = 3;
+          updateDoc(doc(db, "users", user.uid), { iartPullsAvailable: 3 }).catch(()=>{});
+        }
         if (window.userData.totalTradesCompleted  === undefined) window.userData.totalTradesCompleted  = 0;
+
+        // Auto-heal dos Timers: Conserta contas antigas que gastaram pacotes mas ficaram sem timestamp
+        if (window.userData.iartPullsAvailable < 3 && !data.lastIArtPullTimestamp) {
+          const now = Date.now();
+          updateDoc(doc(db, "users", user.uid), { lastIArtPullTimestamp: now }).catch(()=>{});
+          window.userData.lastIArtPullTimestamp = now;
+        }
+        if (window.userData.pullsAvailable < 5 && !data.lastPullTimestamp) {
+          const now = Date.now();
+          updateDoc(doc(db, "users", user.uid), { lastPullTimestamp: now }).catch(()=>{});
+          window.userData.lastPullTimestamp = now;
+        }
 
         // Normaliza lastPullTimestamp para número (ms)
 if (window.userData.lastPullTimestamp?.toMillis) {
