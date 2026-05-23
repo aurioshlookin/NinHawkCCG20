@@ -693,11 +693,11 @@
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-400 mb-1">Tam. Fonte Nome</label>
-                <input type="number" id="admin-name-size" value="12" oninput="window.updateAdminPreview()" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white focus:border-green-500 focus:outline-none text-sm">
+                <input type="number" id="admin-name-size" value="14" oninput="window.updateAdminPreview()" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white focus:border-green-500 focus:outline-none text-sm">
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-400 mb-1">Tam. Fonte Desc</label>
-                <input type="number" id="admin-desc-size" value="9" oninput="window.updateAdminPreview()" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white focus:border-green-500 focus:outline-none text-sm">
+                <input type="number" id="admin-desc-size" value="12" oninput="window.updateAdminPreview()" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white focus:border-green-500 focus:outline-none text-sm">
               </div>
             </div>
             <div>
@@ -730,14 +730,11 @@
         <div class="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center mb-4 border-b border-gray-700 pb-4 gap-4">
           <h3 class="text-xl font-bold text-gray-200">Cartas no Sistema (<span id="admin-card-count" class="text-green-400">0</span>)</h3>
           <div class="flex items-center gap-2">
-            <select id="admin-renum-version" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-blue-500">
-              <option value="Vol. 1">Vol. 1</option>
-              <option value="Vol. 2">Vol. 2</option>
-              <option value="Vol. 3">Vol. 3</option>
-              <option value="Vol. 4">Vol. 4</option>
-              <option value="Vol. 5">Vol. 5</option>
-              <option value="Especial">Especial</option>
-              <option value="Promo">Promo</option>
+            <select id="admin-renum-version" onchange="if(window.updateAllCardDependentUI) window.updateAllCardDependentUI()" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-blue-500">
+              <option value="">Todas as Coleções</option>
+              <option value="BR1">Coleção BR1</option>
+              <option value="BR2">Coleção BR2</option>
+              <option value="IArt">Coleção IArt</option>
             </select>
             <button onclick="window.renumerateCollection()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 rounded transition text-sm shadow">Renumerar Coleção</button>
           </div>
@@ -821,7 +818,7 @@
       5. gacha.js      Pacotes (chama Cloud Functions)
       6. community.js  Ranking e comunidade
       7. trade.js      Sistema de trocas
-      8. fusion.js     Sistema de fusão
+      8. fusion.js      Sistema de fusão
       9. admin.js      Painel admin
   ============================================================ -->
 
