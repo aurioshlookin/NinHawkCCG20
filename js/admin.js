@@ -77,8 +77,12 @@ window.loadCardsCache = async () => {
 
     const renumSelect = document.getElementById("admin-renum-version");
     if (renumSelect && !renumSelect.hasAttribute('data-options-set')) {
-      renumSelect.innerHTML = collectionsHTML;
+      renumSelect.innerHTML = '<option value="">Todas as Coleções</option>' + collectionsHTML;
       renumSelect.setAttribute('data-options-set', 'true');
+      // Adiciona o EventListener para filtrar a view e os status percentuais em tempo real!
+      renumSelect.addEventListener('change', () => {
+        if(window.updateAllCardDependentUI) window.updateAllCardDependentUI();
+      });
     }
 
     // Varredura para arrumar qualquer outro select esquecido no HTML com as coleções antigas
@@ -138,15 +142,12 @@ window.loadCardsCache = async () => {
 window.toggleMaintenance = async () => {
   if (!window.currentUser || window.userData.role !== "admin") return;
   
-  // O padrão é false (desligado) se for undefined.
   const currentState = window.globalSettings?.maintenanceMode === true;
   const newState = !currentState;
   
-  // 1. Atualiza a memória local NA HORA
   if (!window.globalSettings) window.globalSettings = {};
   window.globalSettings.maintenanceMode = newState;
   
-  // 2. Repinta o painel de Admin e a UI Global INSTANTANEAMENTE
   if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
   if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
 
@@ -154,7 +155,6 @@ window.toggleMaintenance = async () => {
     await setDoc(doc(db, "settings", "global"), { maintenanceMode: newState }, { merge: true });
     await window.logSystemAction(`Admin ${window.currentUser.displayName} ${newState ? "LIGOU" : "DESLIGOU"} o modo manutenção.`);
   } catch (e) {
-    // Reverte em caso de erro no banco
     window.globalSettings.maintenanceMode = currentState;
     if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
     if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
@@ -174,7 +174,6 @@ window.toggleCollectionState = async (collectionName) => {
     active.push(collectionName); // Liga
   }
 
-  // Atualiza a memória local NA HORA e repinta a tela (Instantâneo)
   window.globalSettings.activeCollections = active;
   if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
 
@@ -182,7 +181,6 @@ window.toggleCollectionState = async (collectionName) => {
     await setDoc(doc(db, "settings", "global"), { activeCollections: active }, { merge: true });
     await window.logSystemAction(`Admin ${window.currentUser.displayName} alterou a coleção ${collectionName} para ${!isCurrentlyActive ? 'ATIVA' : 'INATIVA'}.`);
   } catch(e) {
-    // Reverte em caso de erro
     if (isCurrentlyActive) {
       active.push(collectionName);
     } else {
@@ -194,23 +192,18 @@ window.toggleCollectionState = async (collectionName) => {
   }
 };
 
-// Injeta o Super Painel (Status de Sistema e Coleções) dinamicamente logo acima dos Logs
 window.renderAdminCollectionsConfig = () => {
   let container = document.getElementById('admin-system-controls-container');
   
-  // Se o container não existe, cria ele e o coloca ACIMA do painel de Logs de Movimentações
   if (!container) {
     container = document.createElement('div');
     container.id = 'admin-system-controls-container';
     
-    // Procura a tabela de logs pelo ID do corpo (tbody)
     const logsList = document.getElementById('admin-players-list');
-    if (!logsList) return; // Se a tabela não existir, cancela a renderização por enquanto
+    if (!logsList) return; 
 
-    // Encontra a div-mãe (caixa escura com a borda) que envolve a tabela
     const logsPanel = logsList.closest('.bg-gray-800') || logsList.parentElement.parentElement;
     
-    // Insere o container exatamente ANTES dessa caixa
     if (logsPanel && logsPanel.parentNode) {
       logsPanel.parentNode.insertBefore(container, logsPanel);
     } else {
@@ -222,7 +215,6 @@ window.renderAdminCollectionsConfig = () => {
   const active = gs.activeCollections || ["BR1", "BR2", "IArt"];
   const isMaint = gs.maintenanceMode === true; // Default false
   
-  // Puxa as coleções do banco de cartas para renderizar os botões dinamicamente
   const dynamicColls = new Set(["BR1", "BR2", "IArt"]);
   if (window.cardDatabase) {
     window.cardDatabase.forEach(c => {
@@ -241,10 +233,8 @@ window.renderAdminCollectionsConfig = () => {
       </button>`;
   });
   
-  // Renderiza todo o Dashboard
   container.innerHTML = `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-      <!-- PAINEL: STATUS DO SISTEMA -->
       <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 shadow-lg">
         <h3 class="text-white font-bold mb-3 flex items-center gap-2">
           <span>⚙️ Status do Servidor</span>
@@ -256,11 +246,9 @@ window.renderAdminCollectionsConfig = () => {
               ${isMaint ? 'LIGADO' : 'DESLIGADO'}
             </button>
           </div>
-          <!-- O botão de Novos Cadastros foi removido por segurança -->
         </div>
       </div>
 
-      <!-- PAINEL: COLEÇÕES ATIVAS -->
       <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 shadow-lg">
         <h3 class="text-white font-bold mb-3 flex items-center gap-2">
           <span>📦 Coleções na Roleta</span>
@@ -274,21 +262,18 @@ window.renderAdminCollectionsConfig = () => {
   `;
 };
 
-// Intercepta a atualização do app.js para injetar e atualizar o painel de coleções automaticamente!
 const originalApplySettings = window.applyGlobalSettingsUI;
 window.applyGlobalSettingsUI = () => {
   if (originalApplySettings) originalApplySettings();
   if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
 };
 
-// Força a renderização inicial caso atrase
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => {
     if (window.renderAdminCollectionsConfig) window.renderAdminCollectionsConfig();
   }, 1000);
 });
 
-// ── Helper: Modal Customizado para Motivo (Prompt Admin) ──────
 window.showAdminPrompt = (titleText, defaultText, callback) => {
   let modal = document.getElementById("admin-custom-prompt");
   if (!modal) {
@@ -321,7 +306,6 @@ window.showAdminPrompt = (titleText, defaultText, callback) => {
   modal.classList.remove("hidden");
   modal.classList.add("flex");
   
-  // Animação de entrada
   setTimeout(() => {
     box.classList.remove("scale-95", "opacity-0");
     box.classList.add("scale-100", "opacity-100");
@@ -349,7 +333,6 @@ window.showAdminPrompt = (titleText, defaultText, callback) => {
   };
 };
 
-// ── Helper: Modal Customizado para Seleção de Pacote (Dropdown) ──────
 window.showPackTypeSelector = (titleText, callback) => {
   let modal = document.getElementById("admin-pack-selector-modal");
   if (!modal) {
@@ -405,7 +388,6 @@ window.showPackTypeSelector = (titleText, callback) => {
   confirmBtn.onclick = () => { cleanup(); callback(inputEl.value); };
 };
 
-// ── Dar/remover pacotes de um usuário — via CF ─────────
 window.addPacksToUser = async (uid, playerName, type, amount, event) => {
   if (!window.currentUser || window.userData.role !== "admin") return;
   const btn = event.currentTarget;
@@ -451,7 +433,6 @@ window.addPacksToUser = async (uid, playerName, type, amount, event) => {
   }
 };
 
-// ── Enviar pacotes para TODOS — via CF ─────────────────
 window.sendPacksToAll = async (e) => {
   e.preventDefault();
   if (!window.currentUser || window.userData.role !== "admin") return;
@@ -486,7 +467,6 @@ window.sendPacksToAll = async (e) => {
   );
 };
 
-// ── Excluir carta — via CF ─────────────────────────────
 window.deleteCard = (id, name) => {
   window.showMessage(`Tem certeza que deseja EXCLUIR permanentemente a carta "${name}"?`, true, async () => {
     try {
@@ -505,11 +485,13 @@ window.deleteCard = (id, name) => {
   });
 };
 
-// ── Renumerar coleção — via CF ─────────────────────────
 window.renumerateCollection = async () => {
   const versionEl = document.getElementById("admin-renum-version");
   if (!versionEl) return;
   const version = versionEl.value;
+  
+  if (!version) return window.showMessage("Selecione uma coleção específica na lista para renumerar.");
+  
   const cardsToUpdate = window.cardDatabase.filter(c => c.cardVersion === version);
 
   if (cardsToUpdate.length === 0) {
@@ -529,7 +511,6 @@ window.renumerateCollection = async () => {
   });
 };
 
-// ── Log de jogadores ────────────────
 window.loadAdminPlayersLog = async () => {
   const list = document.getElementById("admin-players-list");
   if (!list) return;
@@ -541,7 +522,6 @@ window.loadAdminPlayersLog = async () => {
     querySnapshot.forEach(d => players.push({ uid: d.id, ...d.data() }));
     players.sort((a, b) => (b.totalPacksOpened || 0) - (a.totalPacksOpened || 0));
 
-    // Atualiza o cabeçalho para exibir as duas contagens na coluna
     const thead = list.parentElement.querySelector("thead tr");
     if (thead) {
       thead.innerHTML = '<th>Nick</th><th>Cargo</th><th>Packs Básico / IArt</th><th>Packs Premium</th><th>Abertos (Total)</th><th>Última Troca</th>';
@@ -586,7 +566,6 @@ list.innerHTML += `
   }
 };
 
-// ── Imagens do GitHub ─────────────────────────────────────────
 let isFetchingImages = false;
 
 window.loadGitHubImages = async () => {
@@ -663,7 +642,6 @@ window.selectAdminImage = (fileName, element) => {
   if (window.updateAdminPreview) window.updateAdminPreview();
 };
 
-// ── Preview do painel admin ───────────────────────────────────
 window.updateAdminPreview = () => {
   const previewContainer = document.getElementById("admin-preview-container");
   if (!previewContainer) return;
@@ -681,14 +659,13 @@ window.updateAdminPreview = () => {
     imageZoom:   parseFloat(document.getElementById("admin-zoom")?.value) || 1,
     imageTransX: window.adminCardState?.transX || 0,
     imageTransY: window.adminCardState?.transY || 0,
-    nameFontSize: parseInt(document.getElementById("admin-name-size")?.value) || (layoutVal === "full-art" ? 14 : 12),
-    descFontSize: parseInt(document.getElementById("admin-desc-size")?.value) || (layoutVal === "full-art" ? 10 : 9),
+    nameFontSize: parseInt(document.getElementById("admin-name-size")?.value) || 14,
+    descFontSize: parseInt(document.getElementById("admin-desc-size")?.value) || 12,
   };
 
   window.renderCardHTML("admin-preview-container", tempCard, false, true, {});
 };
 
-// ── Editar carta ──────────────────────────────────────────────
 window.editCard = (id) => {
   const card = window.cardDatabase.find(c => c.id === id);
   if (!card) return;
@@ -701,8 +678,8 @@ window.editCard = (id) => {
   set("admin-layout",       card.layout || "standard");
   set("admin-desc",         card.desc);
   set("admin-zoom",         card.imageZoom || 1);
-  set("admin-name-size",    card.nameFontSize || (card.layout === "full-art" ? 14 : 12));
-  set("admin-desc-size",    card.descFontSize || (card.layout === "full-art" ? 10 : 9));
+  set("admin-name-size",    card.nameFontSize || 14);
+  set("admin-desc-size",    card.descFontSize || 12);
 
   const versionSelect = document.getElementById("admin-card-version");
   if (versionSelect) {
@@ -733,8 +710,8 @@ window.cancelEdit = () => {
 
   const set = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val; };
   set("admin-zoom",      1);
-  set("admin-name-size", 12);
-  set("admin-desc-size", 9);
+  set("admin-name-size", 14);
+  set("admin-desc-size", 12);
 
   const versionSelect = document.getElementById("admin-card-version");
   if (versionSelect) versionSelect.value = "BR1";
@@ -751,7 +728,6 @@ window.cancelEdit = () => {
   if (window.loadGitHubImages)      window.loadGitHubImages();
 };
 
-// ── Formulário de criação/edição — via CF ───────────────
 const adminFormGlobal = document.getElementById("admin-form");
 if (adminFormGlobal) {
   adminFormGlobal.addEventListener("submit", async (e) => {
@@ -784,8 +760,8 @@ if (adminFormGlobal) {
         imageZoom:   parseFloat(document.getElementById("admin-zoom")?.value) || 1,
         imageTransX: window.adminCardState?.transX || 0,
         imageTransY: window.adminCardState?.transY || 0,
-        nameFontSize: parseInt(document.getElementById("admin-name-size")?.value) || 12,
-        descFontSize: parseInt(document.getElementById("admin-desc-size")?.value) || 9,
+        nameFontSize: parseInt(document.getElementById("admin-name-size")?.value) || 14,
+        descFontSize: parseInt(document.getElementById("admin-desc-size")?.value) || 12,
       };
 
       await callAdminCF("adminWriteCard", {
@@ -834,7 +810,6 @@ if (adminFormGlobal) {
   });
 }
 
-// ── Rarity Board ──────────────────────────────────────────────
 window.renderRarityBoard = () => {
   const grid            = document.getElementById("rarity-grid");
   const totalPlayersSpan = document.getElementById("rarity-total-players");
