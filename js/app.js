@@ -68,36 +68,62 @@ function initApp() {
   };
 
   window.updateAllCardDependentUI = () => {
-    const count = { C: 0, B: 0, A: 0, S: 0, SS: 0 };
-    window.cardDatabase.forEach(c => { if (count[c.tier] !== undefined) count[c.tier]++; });
-
     const total = window.cardDatabase.length;
-    let baseTotalForIdeal = count['SS'] > 0 ? count['SS'] * 50 : (total > 0 ? total : 50);
 
-    const ideal = {
-      C: Math.round(baseTotalForIdeal * 0.50),
-      B: Math.round(baseTotalForIdeal * 0.30),
-      A: Math.round(baseTotalForIdeal * 0.12),
-      S: Math.round(baseTotalForIdeal * 0.06),
-      SS: count['SS'] > 0 ? count['SS'] : Math.round(baseTotalForIdeal * 0.02)
-    };
-
-    ['C', 'B', 'A', 'S', 'SS'].forEach(tier => {
-      const el = document.getElementById(`admin-count-${tier.toLowerCase()}`);
-      if (el) el.innerHTML = `${count[tier]} <span class="text-sm font-normal text-gray-500">/ ${ideal[tier]}</span>`;
-    });
-
+    // Estatísticas Gerais (Álbum / Gacha)
     const totalCardsEl = document.getElementById('total-cards-count');
-    const adminCountEl = document.getElementById('admin-card-count');
     if (totalCardsEl) totalCardsEl.innerText = total;
-    if (adminCountEl) adminCountEl.innerText = total;
 
+    const gachaContent = document.getElementById('gacha-content');
+    const gachaEmpty = document.getElementById('gacha-empty-db');
+
+    if (total === 0) {
+      if (gachaContent) { gachaContent.classList.add('hidden'); gachaContent.classList.remove('flex'); }
+      if (window.currentUser && gachaEmpty) gachaEmpty.classList.remove('hidden');
+    } else {
+      if (gachaContent) { gachaContent.classList.remove('hidden'); gachaContent.classList.add('flex'); }
+      if (gachaEmpty) gachaEmpty.classList.add('hidden');
+    }
+
+    // Renderização do Painel Admin
     const adminListContainer = document.getElementById('admin-card-list-container');
     if (adminListContainer && window.currentUser && window.userData?.role === 'admin') {
+      
+      // Filtra as cartas exibidas pelo Select de Coleção no painel Admin
+      const versionFilter = document.getElementById('admin-renum-version')?.value || "";
+      let adminDb = window.cardDatabase;
+      
+      if (versionFilter !== "") {
+        adminDb = window.cardDatabase.filter(c => c.cardVersion === versionFilter);
+      }
+
+      // Calcula as estatísticas baseado apenas nas cartas da coleção selecionada
+      const count = { C: 0, B: 0, A: 0, S: 0, SS: 0 };
+      adminDb.forEach(c => { if (count[c.tier] !== undefined) count[c.tier]++; });
+
+      const totalAdminCards = adminDb.length;
+      let baseTotalForIdeal = count['SS'] > 0 ? count['SS'] * 50 : (totalAdminCards > 0 ? totalAdminCards : 50);
+
+      const ideal = {
+        C: Math.round(baseTotalForIdeal * 0.50),
+        B: Math.round(baseTotalForIdeal * 0.30),
+        A: Math.round(baseTotalForIdeal * 0.12),
+        S: Math.round(baseTotalForIdeal * 0.06),
+        SS: count['SS'] > 0 ? count['SS'] : Math.round(baseTotalForIdeal * 0.02)
+      };
+
+      ['C', 'B', 'A', 'S', 'SS'].forEach(tier => {
+        const el = document.getElementById(`admin-count-${tier.toLowerCase()}`);
+        if (el) el.innerHTML = `${count[tier]} <span class="text-sm font-normal text-gray-500">/ ${ideal[tier]}</span>`;
+      });
+
+      const adminCountEl = document.getElementById('admin-card-count');
+      if (adminCountEl) adminCountEl.innerText = totalAdminCards;
+
       adminListContainer.innerHTML = '';
       const TIER_ORDER = ['SS', 'S', 'A', 'B', 'C'];
       const TIER_VALUES = window.TIER_VALUES || { C: 1, B: 2, A: 3, S: 4, SS: 5 };
-      let sortedAdminDb = [...window.cardDatabase].sort((a, b) => (a.cardNumber || '0').localeCompare(b.cardNumber || '0'));
+      let sortedAdminDb = [...adminDb].sort((a, b) => (a.cardNumber || '0').localeCompare(b.cardNumber || '0'));
 
       TIER_ORDER.forEach(tier => {
         const tierCards = sortedAdminDb.filter(c => c.tier === tier);
@@ -145,17 +171,6 @@ function initApp() {
       });
     }
 
-    const gachaContent = document.getElementById('gacha-content');
-    const gachaEmpty = document.getElementById('gacha-empty-db');
-
-    if (total === 0) {
-      if (gachaContent) { gachaContent.classList.add('hidden'); gachaContent.classList.remove('flex'); }
-      if (window.currentUser && gachaEmpty) gachaEmpty.classList.remove('hidden');
-    } else {
-      if (gachaContent) { gachaContent.classList.remove('hidden'); gachaContent.classList.add('flex'); }
-      if (gachaEmpty) gachaEmpty.classList.add('hidden');
-    }
-
     if (window.currentUser) {
       if (window.renderAlbumHTML) window.renderAlbumHTML('album-grid', window.userData?.inventory || {});
       if (window.updateTradeOptions) window.updateTradeOptions();
@@ -167,6 +182,9 @@ function initApp() {
       }
     }
   };
+  
+  // Assegura que o admin tem acesso à função de re-renderizar caso precise
+  window.renderAdminCards = window.updateAllCardDependentUI;
 
   if (window.loadCardsCache) window.loadCardsCache();
 
@@ -532,10 +550,8 @@ function initApp() {
       window.isOpeningAchiev = false;
       if (btn) { btn.disabled = false; btn.innerText = "RESGATAR E ABRIR!"; }
     }
-    // window.isOpeningAchiev volta a false em closeAchievOverlay() (gacha.js)
   };
 
-  // Aqui é onde fica a Shuriken global (inclusive no cabeçalho) com o Title Consertado!
   window.getUserMedals = (inventory) => {
     if (!inventory || !window.cardDatabase) return '';
 
@@ -550,7 +566,6 @@ function initApp() {
       }
     });
 
-    // O truque mestre: Envolver o SVG numa tag <span> que controla o hover (title)
     const getShuriken = (colorClass, title) => `
       <span title="${title}" class="inline-block mx-[2px] cursor-help transition-transform hover:scale-125">
         <svg viewBox="0 0 24 24" class="w-5 h-5 ${colorClass} fill-gray-800 stroke-2" xmlns="http://www.w3.org/2000/svg">
