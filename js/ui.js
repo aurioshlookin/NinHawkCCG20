@@ -109,6 +109,16 @@ function escAttr(str) {
 
     window.switchTab = async (tabName) => {
       window.closeMobileMenu(); // Fecha o menu no celular ao clicar
+
+      // 🛡️ ANTI-EXPLOIT VISUAL: Bloqueia a abertura forçada da aba admin pelo console
+      if (tabName === 'admin') {
+        if (!window.userData || window.userData.role !== 'admin') {
+          window.showMessage("⛔ Acesso Negado: Você não possui privilégios de Administrador.");
+          const btnAdmin = document.getElementById('tab-admin');
+          if (btnAdmin) btnAdmin.classList.add('hidden'); // Esconde o botão que o cara forçou a aparecer
+          return; // Para a execução do código aqui, impedindo de renderizar a tela
+        }
+      }
       
       ['gacha', 'album', 'explore', 'trade', 'admin', 'achievements', 'rarity', 'fusion'].forEach(t => {
         const sec = document.getElementById(`section-${t}`);
