@@ -295,9 +295,13 @@ window.openAcceptTradeModal = async (tradeId, fromUserId, offerId, reqTier, reqQ
     const tradesToday = window.userData.lastTradeDate === tp ? (window.userData.tradesToday || 0) : 0;
     if (tradesToday >= 2) return window.showMessage("Você já atingiu o seu limite de trocas neste período.");
 
-    const userASnap = await getDoc(doc(db, "users", fromUserId));
-    if (!userASnap.exists()) throw "O criador da oferta não foi encontrado.";
-    const invA  = userASnap.data().inventory || {};
+    // FIX: Lendo o inventário do criador através do Leaderboard público para não violar as regras da coleção 'users'
+    const lbSnap = await getDoc(doc(db, "community", "leaderboard"));
+    const lbPlayers = lbSnap.exists() ? lbSnap.data().players : {};
+    const userAData = lbPlayers[fromUserId];
+
+    if (!userAData) throw "O criador da oferta não foi encontrado.";
+    const invA  = userAData.inventory || {};
     const myInv = window.userData.inventory || {};
     let validCardsForB = [];
 
@@ -380,7 +384,7 @@ window.toggleAcceptCard = (cardId, instanceId) => {
 
 // ── confirmAcceptTrade via Cloud Function ─────────────────────
 window.confirmAcceptTrade = async () => {
-  const state           = window.currentTradeAccept;
+  const state            = window.currentTradeAccept;
   const selectedCardIds = state.selectedIds.map(item => item.cardId);
 
   const btn = document.getElementById('btn-confirm-accept');
@@ -494,4 +498,3 @@ window.updateFusionPreview = () => {
     if (btn) btn.disabled = true;
   }
 };
-
