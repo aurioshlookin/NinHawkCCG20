@@ -836,6 +836,8 @@
              collection, query, where, getDocs, serverTimestamp, runTransaction,
              deleteDoc, writeBatch, increment }
       from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { initializeAppCheck, ReCaptchaV3Provider }
+      from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
 
     // ── Configuração Firebase ──────────────────────────────────────────────
     const firebaseConfig = {
@@ -847,6 +849,13 @@
       appId: "1:453676287016:web:d9d42209a871b5c3c0211d"
     };
     const app = initializeApp(firebaseConfig);
+
+    // INICIALIZAÇÃO DO APP CHECK
+    const appCheck = initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider('6LdKVf8sAAAAAMasleMcwGkRHcr2-YVxgWTwf8eI'),
+      isTokenAutoRefreshEnabled: true
+    });
+
     const auth = getAuth(app);
     const db   = getFirestore(app);
 

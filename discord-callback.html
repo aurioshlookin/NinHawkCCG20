@@ -40,6 +40,8 @@
       from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, getDoc } 
       from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { initializeAppCheck, ReCaptchaV3Provider } 
+      from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
 
     // ── Config Firebase (mesmo do index.html) ──────────────────
     const firebaseConfig = {
@@ -55,6 +57,13 @@
     const CLOUD_FUNCTIONS_URL = "https://southamerica-east1-nincardcollectionbr.cloudfunctions.net";
 
     const app  = initializeApp(firebaseConfig);
+    
+    // INICIALIZAÇÃO DO APP CHECK
+    const appCheck = initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider('6LdKVf8sAAAAAMasleMcwGkRHcr2-YVxgWTwf8eI'),
+      isTokenAutoRefreshEnabled: true
+    });
+
     const auth = getAuth(app);
     const db   = getFirestore(app);
 

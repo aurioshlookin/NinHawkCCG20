@@ -262,6 +262,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, collection, query, where, orderBy, limit, onSnapshot, writeBatch, increment, addDoc, getDocs, setDoc, deleteDoc, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAWcdJV6INuUeo6-STW5J_VYZ7aUzO51KI",
@@ -273,6 +274,13 @@
     };
 
     const app = initializeApp(firebaseConfig);
+    
+    // INICIALIZAÇÃO DO APP CHECK
+    const appCheck = initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider('6LdKVf8sAAAAAMasleMcwGkRHcr2-YVxgWTwf8eI'),
+      isTokenAutoRefreshEnabled: true
+    });
+
     const auth = getAuth(app);
     const db = getFirestore(app);
 
@@ -791,7 +799,7 @@
                     Object.values(u.inventory).forEach(qtd => { totalCartas += (qtd || 0); });
                 }
 
-                const packsAbertos  = u.totalPacksOpened       || 0;
+                const packsAbertos  = u.totalPacksOpened        || 0;
                 const trocasFeitas  = u.totalTradesCompleted    || 0;
                 const pacotesB      = u.pullsAvailable          || 0;
                 const pacotesP      = u.premiumPullsAvailable   || 0;
