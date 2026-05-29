@@ -65,6 +65,7 @@ function initAuth() {
 
   
   let unsubUser = null;
+  let unsubSettings = null;
   
   onAuthStateChanged(auth, (user) => {
     window.currentUser = user;
@@ -97,6 +98,15 @@ function initAuth() {
         window.switchTab("gacha");
       }
   
+      // ANTI-EXPLOIT: Lemos o Settings APENAS se o usuário estiver autenticado!
+      if (unsubSettings) unsubSettings();
+      unsubSettings = onSnapshot(doc(db, "settings", "global"), (docSnap) => {
+        if (docSnap.exists()) {
+          window.globalSettings = docSnap.data();
+          if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
+        }
+      });
+
       // Escuta mudanças em tempo real no documento do usuário
       if (unsubUser) unsubUser();
       unsubUser = onSnapshot(doc(db, "users", user.uid), async (docSnap) => {
@@ -184,6 +194,7 @@ if (window.userData.lastIArtPullTimestamp?.toMillis) {
       });
   
       if (unsubUser) { unsubUser(); unsubUser = null; }
+      if (unsubSettings) { unsubSettings(); unsubSettings = null; }
       if (window.applyGlobalSettingsUI) window.applyGlobalSettingsUI();
 window.switchTab("explore");
     }

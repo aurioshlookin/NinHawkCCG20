@@ -45,14 +45,7 @@ function initApp() {
     }
   };
 
-  if (window.onSnapshot && window.doc) {
-    onSnapshot(doc(db, "settings", "global"), (docSnap) => {
-      if (docSnap.exists()) {
-        window.globalSettings = docSnap.data();
-        window.applyGlobalSettingsUI();
-      }
-    });
-  }
+  // A LEITURA DO SETTINGS FOI MOVIDA PARA O AUTH.JS (ANTI-EXPLOIT)
 
   window.loadGlobalStats = async () => {
     try {
